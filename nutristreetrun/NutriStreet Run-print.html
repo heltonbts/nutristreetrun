@@ -1,0 +1,332 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<title>NutriStreet Run — Telas (Print)</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+<style>
+  :root { --nsr-brand: #5FB8A8; }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; background: #f0eee9; font-family: 'Inter', system-ui, sans-serif; -webkit-font-smoothing: antialiased; color: #2a251f; }
+  button { font-family: inherit; }
+
+  .doc { max-width: 1100px; margin: 0 auto; padding: 32px 28px 64px; }
+  .cover {
+    padding: 60px 0 40px; border-bottom: 2px solid #2a251f; margin-bottom: 32px;
+  }
+  .cover .kicker {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+    color: #5FB8A8; letter-spacing: 2.4px; text-transform: uppercase;
+  }
+  .cover h1 {
+    font-family: 'Bebas Neue', sans-serif; font-size: 96px; line-height: 0.85; letter-spacing: 1px;
+    margin: 12px 0 8px;
+  }
+  .cover .meta { font-size: 13px; color: #6a655d; margin-top: 14px; line-height: 1.6; }
+  .cover .meta b { color: #2a251f; }
+
+  .section {
+    page-break-before: page;
+    break-before: page;
+    padding-top: 24px;
+  }
+  .section:first-of-type { page-break-before: avoid; break-before: avoid; }
+  .section h2 {
+    font-family: 'JetBrains Mono', monospace; font-size: 11px; font-weight: 700;
+    color: #c96442; letter-spacing: 2px; text-transform: uppercase;
+    margin: 0 0 4px;
+  }
+  .section .title {
+    font-family: 'Bebas Neue', sans-serif; font-size: 48px; line-height: 0.95;
+    margin: 0 0 6px; letter-spacing: 0.5px;
+  }
+  .section .sub { font-size: 13px; color: #6a655d; margin-bottom: 24px; line-height: 1.5; }
+
+  .grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 20px 16px;
+  }
+  .grid.cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid.cols-4 { grid-template-columns: repeat(4, 1fr); gap: 14px 12px; }
+
+  .card {
+    break-inside: avoid;
+    page-break-inside: avoid;
+    display: flex; flex-direction: column; align-items: center;
+  }
+  .card .label {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px; font-weight: 700;
+    color: #2a251f; letter-spacing: 1px; text-transform: uppercase;
+    margin-top: 10px; text-align: center;
+  }
+  .card .label .flow { color: #c96442; }
+  .phone-host { width: 100%; max-width: 280px; }
+
+  /* Notes/tokens cards */
+  .note-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 16px; }
+  .note {
+    background: #fff; border: 1px solid #e6e2dc; border-radius: 8px; padding: 18px;
+    break-inside: avoid; page-break-inside: avoid;
+  }
+  .note .nh {
+    font-family: 'JetBrains Mono', monospace; font-size: 9px; font-weight: 700;
+    color: #c96442; letter-spacing: 1.4px; margin-bottom: 6px;
+  }
+  .note .nt {
+    font-family: 'Bebas Neue', sans-serif; font-size: 22px; letter-spacing: 0.4px;
+    line-height: 1; margin-bottom: 12px;
+  }
+  .note .body { font-size: 12px; line-height: 1.6; color: #2a251f; }
+  .note .body code {
+    font-family: 'JetBrains Mono', monospace; font-size: 10px;
+    background: #f0eee9; padding: 2px 6px; border-radius: 3px;
+  }
+  .swatches { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 12px; }
+  .sw { text-align: center; }
+  .sw .chip { width: 44px; height: 44px; border-radius: 6px; border: 1px solid rgba(0,0,0,0.08); }
+  .sw .name { font-size: 9px; font-weight: 700; margin-top: 4px; }
+  .sw .hex { font-size: 8px; color: #888; font-family: 'JetBrains Mono', monospace; }
+
+  /* Print tweaks */
+  @page { size: A4 portrait; margin: 1.2cm; }
+  @media print {
+    html, body { background: #fff; }
+    .doc { padding: 0; max-width: none; }
+    .section { padding-top: 0; }
+    .section:first-of-type { padding-top: 0; }
+    .card .phone-host { transform: none; }
+    .grid { gap: 14px 10px; }
+    .grid.cols-4 { gap: 10px 8px; }
+    .cover { padding-top: 20px; }
+    .cover h1 { font-size: 72px; }
+  }
+</style>
+</head>
+<body>
+
+<div class="doc">
+
+  <div class="cover">
+    <div class="kicker">Mobile App · Hi-Fi Design</div>
+    <h1>NUTRISTREET RUN</h1>
+    <div class="meta">
+      App de corridas virtuais. Inscrição mensal, meta de km, medalha física em casa quando bate a meta.<br/>
+      <b>Plataformas:</b> iOS · Android &nbsp;·&nbsp;
+      <b>Tipografia:</b> Bebas Neue · Inter · JetBrains Mono &nbsp;·&nbsp;
+      <b>Paleta:</b> #5FB8A8 verde água sobre dark
+    </div>
+  </div>
+
+  <div id="root"></div>
+
+</div>
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<script src="data.js"></script>
+<script type="text/babel" src="tweaks-panel.jsx"></script>
+<script type="text/babel" src="nsr-atoms.jsx"></script>
+<script type="text/babel" src="nsr-home.jsx"></script>
+<script type="text/babel" src="nsr-screens.jsx"></script>
+<script type="text/babel" src="nsr-canvas-helpers.jsx"></script>
+<script type="text/babel" src="nsr-mvp.jsx"></script>
+<script type="text/babel" src="nsr-empty-home.jsx"></script>
+
+<script type="text/babel">
+const { useState, useEffect } = React;
+const data = window.NSR_DATA;
+
+function PhoneCard({ flow, label, screen, children }) {
+  return (
+    <div className="card">
+      <div className="phone-host">
+        <MiniPhone screen={screen} w={280} h={580}>
+          {children}
+        </MiniPhone>
+      </div>
+      <div className="label">
+        {flow && <span className="flow">{flow}</span>}{flow && ' · '}{label}
+      </div>
+    </div>
+  );
+}
+
+function Section({ kicker, title, sub, cols = 3, children }) {
+  return (
+    <div className="section">
+      <h2>{kicker}</h2>
+      <div className="title">{title}</div>
+      {sub && <div className="sub">{sub}</div>}
+      <div className={`grid${cols === 2 ? ' cols-2' : cols === 4 ? ' cols-4' : ''}`}>
+        {children}
+      </div>
+    </div>
+  );
+}
+
+function PrintApp() {
+  return (
+    <>
+      <Section kicker="Onboarding · 00" title="LOGIN & CADASTRO" sub="Primeira experiência. Login, 3 passos de cadastro e conexão com Strava/Health.">
+        <PhoneCard flow="00.0" label="Login" screen="home"><LoginScreen /></PhoneCard>
+        <PhoneCard flow="00.1" label="Boas-vindas" screen="home"><OnboardingWelcome /></PhoneCard>
+        <PhoneCard flow="00.2" label="Dados pessoais" screen="home"><OnboardingSignup /></PhoneCard>
+        <PhoneCard flow="00.3" label="Assessoria" screen="home"><OnboardingClub /></PhoneCard>
+        <PhoneCard flow="00.4" label="Strava + Health" screen="home"><SyncConnect /></PhoneCard>
+      </Section>
+
+      <Section kicker="Home · 01" title="HOME — 3 VARIAÇÕES + EMPTY STATE" sub="Tela mais importante. Direção visual a escolher.">
+        <PhoneCard flow="01.A" label="Banner editorial" screen="home"><HomeBannerHero data={data} /></PhoneCard>
+        <PhoneCard flow="01.A·empty" label="Sem desafio (vazio)" screen="home"><HomeEmptyState data={data} onPick={() => {}} /></PhoneCard>
+        <PhoneCard flow="01.A·picker" label="Escolher desafio" screen="home"><ChallengePickerScreen onBack={() => {}} onConfirm={() => {}} /></PhoneCard>
+        <PhoneCard flow="01.B" label="Big number" screen="home"><HomeBigNumber data={data} /></PhoneCard>
+        <PhoneCard flow="01.C" label="Ring progress" screen="home"><HomeRing data={data} /></PhoneCard>
+      </Section>
+
+      <Section kicker="Ranking · 02" title="RANKING — 3 ABAS" sub="Cidade, Estado e Assessorias. Mesma estrutura, conteúdo diferente.">
+        <PhoneCard flow="02.1" label="Cidade" screen="rank"><RankingForced data={data} tab="city" /></PhoneCard>
+        <PhoneCard flow="02.2" label="Estado" screen="rank"><RankingForced data={data} tab="state" /></PhoneCard>
+        <PhoneCard flow="02.3" label="Assessorias" screen="rank"><RankingForced data={data} tab="club" /></PhoneCard>
+      </Section>
+
+      <Section kicker="Engajamento · 03 · 07" title="FEED & NOTIFICAÇÕES" sub="O que faz o usuário voltar fora do dia da corrida.">
+        <PhoneCard flow="03" label="Feed da comunidade" screen="feed"><FeedScreen /></PhoneCard>
+        <PhoneCard flow="07" label="Centro de avisos" screen="home"><NotificationsScreen /></PhoneCard>
+      </Section>
+
+      <Section kicker="Corridas · 04" title="CORRIDAS & DETALHE" sub="Histórico Strava/Health validado e detalhe de cada corrida.">
+        <PhoneCard flow="04" label="Minhas corridas" screen="runs"><RunsScreen data={data} /></PhoneCard>
+        <PhoneCard flow="04.1" label="Detalhe da corrida" screen="runs"><RunDetailScreen /></PhoneCard>
+      </Section>
+
+      <Section kicker="Perfil & Medalhas · 05" title="PERFIL & VITRINE" sub="Stats acumulados, plano ativo, medalhas como subtela e endereço de entrega.">
+        <PhoneCard flow="05" label="Perfil principal" screen="profile"><ProfileScreen data={data} /></PhoneCard>
+        <PhoneCard flow="05.1" label="Medalhas (vitrine)" screen="profile"><MedalsScreen data={data} /></PhoneCard>
+        <PhoneCard flow="05.2" label="Inscrição (planos)" screen="profile"><SubscribeStandalone data={data} /></PhoneCard>
+        <PhoneCard flow="05.3" label="Endereço de entrega" screen="profile"><AddressScreen /></PhoneCard>
+      </Section>
+
+      <Section kicker="Pagamento · 06" title="CHECKOUT EXTERNO" sub="Processado fora do app pra evitar taxas de loja. App só confirma o retorno.">
+        <PhoneCard flow="06.1" label="Ponte pro checkout" screen="profile"><PaymentExternalScreen /></PhoneCard>
+        <PhoneCard flow="06.2" label="Sucesso pós-retorno" screen="profile"><PaymentSuccessScreen /></PhoneCard>
+      </Section>
+
+      {/* Notes pages */}
+      <div className="section">
+        <h2>Notas de fluxo</h2>
+        <div className="title">SISTEMA & NAVEGAÇÃO</div>
+        <div className="sub">Tokens, navegação e estados — referência pra o time de dev.</div>
+
+        <div className="note-grid">
+          <div className="note">
+            <div className="nh">NAVEGAÇÃO · BOTTOM</div>
+            <div className="nt">5 abas (raiz)</div>
+            <div className="body">
+              <div><b>01 · Home</b> — desafio ativo</div>
+              <div><b>02 · Ranking</b> — Cidade/Estado/Assessoria</div>
+              <div><b>03 · Feed</b> — comunidade (engajamento)</div>
+              <div><b>04 · Corridas</b> — histórico validado</div>
+              <div><b>05 · Perfil</b> — stats + medalhas</div>
+              <div style={{ marginTop: 8, color: '#6a655d', fontSize: 11 }}>
+                Medalhas vive como subtela do Perfil. Acessível por 2 caminhos: card de stats e botão dedicado.
+              </div>
+            </div>
+          </div>
+
+          <div className="note">
+            <div className="nh">ESTADOS · MEDALHA</div>
+            <div className="nt">4 estados</div>
+            <div className="body">
+              <div><code>progress</code> — em andamento</div>
+              <div><code>shipped</code> — enviada com tracking</div>
+              <div><code>delivered</code> — recebida</div>
+              <div><code>missed</code> — não bateu meta (dessaturada)</div>
+            </div>
+          </div>
+
+          <div className="note">
+            <div className="nh">DESAFIOS · OPÇÕES</div>
+            <div className="nt">4 metas/mês</div>
+            <div className="body">
+              <div><b>30K</b> — Iniciante</div>
+              <div><b>60K</b> — Médio (mais escolhido)</div>
+              <div><b>100K</b> — Avançado</div>
+              <div><b>150K</b> — Elite (edição limitada)</div>
+              <div style={{ marginTop: 8, color: '#6a655d', fontSize: 11 }}>
+                Escolha trava no dia 5 do mês.
+              </div>
+            </div>
+          </div>
+
+          <div className="note">
+            <div className="nh">TOKENS · CORES</div>
+            <div className="nt">Paleta</div>
+            <div className="swatches">
+              {[
+                ['#5FB8A8', 'brand'],
+                ['#0E1110', 'bg'],
+                ['#1C2120', 'card'],
+                ['#ECEFEE', 'text'],
+                ['#3DDC84', 'success'],
+                ['#FF6B6B', 'danger'],
+              ].map(([hex, name]) => (
+                <div className="sw" key={name}>
+                  <div className="chip" style={{ background: hex }} />
+                  <div className="name">{name}</div>
+                  <div className="hex">{hex}</div>
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="note">
+            <div className="nh">TOKENS · TIPOGRAFIA</div>
+            <div className="nt">3 famílias</div>
+            <div className="body">
+              <div style={{ fontFamily: 'Bebas Neue', fontSize: 22, letterSpacing: 0.5 }}>BEBAS NEUE — display, números, títulos</div>
+              <div style={{ marginTop: 6 }}><b>Inter</b> — body, labels, UI</div>
+              <div style={{ fontFamily: 'JetBrains Mono', monospace: true, marginTop: 6 }}><b>JetBrains Mono</b> — códigos, tracking</div>
+            </div>
+          </div>
+
+          <div className="note">
+            <div className="nh">INTEGRAÇÕES</div>
+            <div className="nt">Sync automático</div>
+            <div className="body">
+              <div><b>Strava</b> · OAuth · pull de atividades</div>
+              <div><b>Apple Health</b> · iOS</div>
+              <div><b>Google Fit</b> · Android</div>
+              <div style={{ marginTop: 8, color: '#6a655d', fontSize: 11 }}>
+                Pace válido: 3'00" – 9'00"/km. Ciclismo, caminhada e indoor não contam.
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </>
+  );
+}
+
+ReactDOM.createRoot(document.getElementById('root')).render(<PrintApp />);
+
+// Auto-print after fonts + layout settle
+window.addEventListener('load', () => {
+  if (document.fonts && document.fonts.ready) {
+    document.fonts.ready.then(() => {
+      setTimeout(() => window.print(), 800);
+    });
+  } else {
+    setTimeout(() => window.print(), 1500);
+  }
+});
+</script>
+
+</body>
+</html>
