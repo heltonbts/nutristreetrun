@@ -11,7 +11,7 @@ export class RegisterDto {
   email: string;
 
   @ApiProperty({ example: '+5511999999999' })
-  @IsMobilePhone('pt-BR')
+  @IsMobilePhone(null, { strictMode: false })
   phone: string;
 
   @ApiProperty({ example: 'senha123', minLength: 6 })
