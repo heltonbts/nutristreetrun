@@ -10,8 +10,46 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+} from 'react-native-reanimated';
+import axios from 'axios';
 import { useAuthStore } from '../../src/store/auth.store';
 import { colors, font } from '../../src/lib/tokens';
+
+const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
+
+function AnimatedButton({
+  onPress,
+  disabled,
+  loading,
+  label,
+}: {
+  onPress: () => void;
+  disabled: boolean;
+  loading: boolean;
+  label: string;
+}) {
+  const scale = useSharedValue(1);
+  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+
+  return (
+    <AnimatedPressable
+      style={[s.btn, style]}
+      disabled={disabled}
+      onPressIn={() => { scale.value = withSpring(0.96); }}
+      onPressOut={() => { scale.value = withSpring(1); }}
+      onPress={onPress}
+    >
+      {loading
+        ? <ActivityIndicator color={colors.brandInk} />
+        : <Text style={s.btnText}>{label}</Text>
+      }
+    </AnimatedPressable>
+  );
+}
 
 export default function LoginScreen() {
   const [email, setEmail] = useState('');
@@ -26,8 +64,13 @@ export default function LoginScreen() {
     setError('');
     try {
       await login(email.trim(), password);
-    } catch {
-      setError('E-mail ou senha incorretos');
+    } catch (err) {
+      if (axios.isAxiosError(err)) {
+        const msg = err.response?.data?.message;
+        setError(Array.isArray(msg) ? msg[0] : (msg ?? 'E-mail ou senha incorretos'));
+      } else {
+        setError('E-mail ou senha incorretos');
+      }
     } finally {
       setLoading(false);
     }
@@ -64,16 +107,18 @@ export default function LoginScreen() {
 
         {error ? <Text style={s.error}>{error}</Text> : null}
 
-        <Pressable style={s.btn} onPress={handleLogin} disabled={loading}>
-          {loading
-            ? <ActivityIndicator color={colors.brandInk} />
-            : <Text style={s.btnText}>ENTRAR</Text>
-          }
-        </Pressable>
+        <AnimatedButton
+          onPress={handleLogin}
+          disabled={loading}
+          loading={loading}
+          label="ENTRAR"
+        />
 
         <Link href="/(auth)/register" asChild>
           <Pressable style={s.linkBtn}>
-            <Text style={s.link}>Não tem conta? <Text style={{ color: colors.brand }}>Criar conta</Text></Text>
+            <Text style={s.link}>
+              Não tem conta? <Text style={{ color: colors.brand }}>Criar conta</Text>
+            </Text>
           </Pressable>
         </Link>
       </View>
