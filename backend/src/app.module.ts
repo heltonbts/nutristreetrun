@@ -3,10 +3,12 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
+import { HomeModule } from './home/home.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
   imports: [
+    HomeModule,
     ThrottlerModule.forRoot({
       throttlers: [
         { name: 'short', ttl: 1000, limit: 5 }, // 5 req/s
