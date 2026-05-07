@@ -10,11 +10,7 @@ async function bootstrap() {
 
   app.use(helmet());
 
-  app.enableCors({
-    origin: process.env.ALLOWED_ORIGINS?.split(',') ?? '*',
-    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
-  });
+  app.enableCors();
 
   app.useGlobalPipes(new ValidationPipe({ whitelist: true }));
 
