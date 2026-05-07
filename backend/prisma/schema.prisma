@@ -1,0 +1,89 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String   @unique
+  password  String
+  name      String
+  phone     String
+  city      String?
+  state     String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  activities       Activity[]
+  userChallenges   UserChallenge[]
+  stravaConnection StravaConnection?
+}
+
+model Challenge {
+  id        String   @id @default(cuid())
+  year      Int
+  month     Int
+  title     String
+  goalKm    Float
+  startsAt  DateTime
+  endsAt    DateTime
+  createdAt DateTime @default(now())
+
+  userChallenges UserChallenge[]
+
+  @@unique([year, month])
+}
+
+model UserChallenge {
+  id          String      @id @default(cuid())
+  userId      String
+  challengeId String
+  medalStatus MedalStatus @default(PROGRESS)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  user      User      @relation(fields: [userId], references: [id])
+  challenge Challenge @relation(fields: [challengeId], references: [id])
+
+  @@unique([userId, challengeId])
+}
+
+enum MedalStatus {
+  PROGRESS
+  SHIPPED
+  DELIVERED
+  MISSED
+}
+
+model StravaConnection {
+  id           String   @id @default(cuid())
+  userId       String   @unique
+  stravaId     Int      @unique
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+}
+
+model Activity {
+  id         String   @id @default(cuid())
+  userId     String
+  stravaId   Int?     @unique
+  title      String
+  distanceKm Float
+  pace       String?
+  source     String
+  counts     Boolean  @default(true)
+  skipReason String?
+  startedAt  DateTime
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+}
