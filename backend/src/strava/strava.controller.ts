@@ -10,6 +10,13 @@ import { StravaService } from './strava.service';
 export class StravaController {
   constructor(private stravaService: StravaService) {}
 
+  @Get('url')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Retorna URL de autorização do Strava como JSON' })
+  getAuthUrl(@CurrentUser() user: { id: string }) {
+    return { url: this.stravaService.buildAuthUrl(user.id) };
+  }
+
   @Get()
   @ApiBearerAuth()
   @ApiOperation({ summary: 'Redireciona para autorização do Strava' })
