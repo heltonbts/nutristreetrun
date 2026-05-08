@@ -1,8 +1,10 @@
 import { useQueryClient } from '@tanstack/react-query';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  AppState,
+  type AppStateStatus,
   Linking,
   Pressable,
   StyleSheet,
@@ -65,13 +67,26 @@ export function ConnectionsScreen({ strava, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const waitingCallback = useRef(false);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
+      if (state === 'active' && waitingCallback.current) {
+        waitingCallback.current = false;
+        void queryClient.invalidateQueries({ queryKey: ['profile'] });
+      }
+    });
+    return () => sub.remove();
+  }, [queryClient]);
 
   async function connectStrava() {
     setLoadingId('strava-connect');
     try {
       const res = await api.get<{ url: string }>('/auth/strava/url');
+      waitingCallback.current = true;
       await Linking.openURL(res.data.url);
     } catch {
+      waitingCallback.current = false;
       Alert.alert('Erro', 'Não foi possível abrir a autorização do Strava.');
     } finally {
       setLoadingId(null);

@@ -56,22 +56,27 @@ export class StravaService {
 
     const data = (await res.json()) as StravaTokenResponse;
 
-    await this.prisma.stravaConnection.upsert({
-      where: { userId },
-      update: {
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresAt: new Date(data.expires_at * 1000),
-        stravaId: data.athlete.id,
-      },
-      create: {
-        userId,
-        stravaId: data.athlete.id,
-        accessToken: data.access_token,
-        refreshToken: data.refresh_token,
-        expiresAt: new Date(data.expires_at * 1000),
-      },
-    });
+    await this.prisma.$transaction([
+      this.prisma.stravaConnection.deleteMany({
+        where: { stravaId: data.athlete.id, NOT: { userId } },
+      }),
+      this.prisma.stravaConnection.upsert({
+        where: { userId },
+        update: {
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          expiresAt: new Date(data.expires_at * 1000),
+          stravaId: data.athlete.id,
+        },
+        create: {
+          userId,
+          stravaId: data.athlete.id,
+          accessToken: data.access_token,
+          refreshToken: data.refresh_token,
+          expiresAt: new Date(data.expires_at * 1000),
+        },
+      }),
+    ]);
   }
 
   async syncChallenge(userId: string): Promise<{ synced: number }> {
