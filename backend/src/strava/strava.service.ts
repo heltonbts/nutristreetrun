@@ -74,6 +74,40 @@ export class StravaService {
     });
   }
 
+  async syncChallenge(userId: string): Promise<{ synced: number }> {
+    const now = new Date();
+    const challenge = await this.prisma.challenge.findFirst({
+      where: { startsAt: { lte: now }, endsAt: { gte: now } },
+    });
+
+    const from = challenge
+      ? challenge.startsAt
+      : new Date(now.getFullYear(), now.getMonth(), 1);
+    const to = challenge ? challenge.endsAt : now;
+
+    const token = await this.getValidToken(userId);
+
+    const params = new URLSearchParams({
+      after: String(Math.floor(from.getTime() / 1000)),
+      before: String(Math.floor(to.getTime() / 1000)),
+      per_page: '200',
+    });
+
+    const res = await fetch(
+      `${STRAVA_API}/athlete/activities?${params.toString()}`,
+      {
+        headers: { Authorization: `Bearer ${token}` },
+      },
+    );
+
+    const activities = (await res.json()) as StravaActivity[];
+    await Promise.all(
+      activities.map((a) => this.syncActivity(userId, a.id, token)),
+    );
+
+    return { synced: activities.length };
+  }
+
   async handleWebhookEvent(event: {
     object_type: string;
     aspect_type: string;

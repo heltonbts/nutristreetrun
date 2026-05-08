@@ -37,6 +37,13 @@ export class StravaController {
     res.send('<h2>Strava conectado com sucesso! Pode fechar esta janela.</h2>');
   }
 
+  @Post('sync')
+  @ApiBearerAuth()
+  @ApiOperation({ summary: 'Sincroniza atividades do Strava no desafio ativo' })
+  sync(@CurrentUser() user: { id: string }) {
+    return this.stravaService.syncChallenge(user.id);
+  }
+
   @Post('webhook')
   @Public()
   @ApiOperation({ summary: 'Recebe eventos do webhook do Strava' })
