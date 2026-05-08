@@ -231,16 +231,16 @@ export default function ProfileScreen() {
         <Text style={s.sectionLabel}>ESTATÍSTICAS</Text>
         <View style={s.statsGrid}>
           <Pressable style={[s.statCell, s.statCellBorderR, s.statCellBorderB]} onPress={() => setShowMedals(true)}>
-            <Text style={s.statValue}>{data?.stats.totalMedals ?? 0}</Text>
+            <Text style={s.statValue}>{data?.stats?.totalMedals ?? 0}</Text>
             <Text style={s.statLabel}>Medalhas</Text>
             <Text style={s.statArrow}>↗</Text>
           </Pressable>
           <View style={[s.statCell, s.statCellBorderB]}>
-            <Text style={s.statValue}>{data?.stats.totalKm ?? 0}</Text>
+            <Text style={s.statValue}>{data?.stats?.totalKm ?? 0}</Text>
             <Text style={s.statLabel}>km total</Text>
           </View>
           <View style={[s.statCell, s.statCellBorderR]}>
-            <Text style={s.statValue}>{data?.stats.monthsActive ?? 0}</Text>
+            <Text style={s.statValue}>{data?.stats?.monthsActive ?? 0}</Text>
             <Text style={s.statLabel}>Meses ativos</Text>
           </View>
           <View style={s.statCell}>
@@ -259,7 +259,7 @@ export default function ProfileScreen() {
           <View style={{ flex: 1 }}>
             <Text style={s.medalsBtnTitle}>Minhas medalhas</Text>
             <Text style={s.medalsBtnSub}>
-              {data?.stats.totalMedals ?? 0} conquistadas · ver vitrine
+              {data?.stats?.totalMedals ?? 0} conquistadas · ver vitrine
             </Text>
           </View>
           <Text style={{ color: colors.brand, fontSize: 16 }}>›</Text>
