@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -8,11 +8,26 @@ export class HomeService {
   async getHome(userId: string) {
     const now = new Date();
 
-    const challenge = await this.prisma.challenge.findFirst({
-      where: { startsAt: { lte: now }, endsAt: { gte: now } },
+    const [user, challenge] = await Promise.all([
+      this.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
+      this.prisma.challenge.findFirst({
+        where: { startsAt: { lte: now }, endsAt: { gte: now } },
+      }),
+    ]);
+
+    const thirtyDaysAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+
+    if (!challenge) {
+      return this.emptyHome(userId, user.name, thirtyDaysAgo);
+    }
+
+    const userChallenge = await this.prisma.userChallenge.findUnique({
+      where: { userId_challengeId: { userId, challengeId: challenge.id } },
     });
 
-    if (!challenge) throw new NotFoundException('Nenhum desafio ativo');
+    if (!userChallenge) {
+      return this.emptyHome(userId, user.name, thirtyDaysAgo);
+    }
 
     const activities = await this.prisma.activity.findMany({
       where: {
@@ -27,7 +42,6 @@ export class HomeService {
       .reduce((sum, a) => sum + a.distanceKm, 0);
 
     const pct = Math.min(100, (doneKm / challenge.goalKm) * 100);
-
     const daysLeft = Math.max(
       0,
       Math.ceil(
@@ -38,6 +52,7 @@ export class HomeService {
     const ranking = await this.getRanking(userId, challenge.id);
 
     return {
+      userName: user.name,
       challenge: {
         id: challenge.id,
         title: challenge.title,
@@ -47,16 +62,45 @@ export class HomeService {
         daysLeft,
       },
       ranking,
-      recentActivities: activities.slice(0, 5).map((a) => ({
-        id: a.id,
-        title: a.title,
-        distanceKm: a.distanceKm,
-        pace: a.pace,
-        source: a.source,
-        counts: a.counts,
-        skipReason: a.skipReason,
-        startedAt: a.startedAt,
-      })),
+      recentActivities: activities
+        .slice(0, 5)
+        .map((a) => HomeService.mapActivity(a)),
+    };
+  }
+
+  private async emptyHome(userId: string, userName: string, since: Date) {
+    const recent = await this.prisma.activity.findMany({
+      where: { userId, startedAt: { gte: since } },
+      orderBy: { startedAt: 'desc' },
+      take: 5,
+    });
+    return {
+      userName,
+      challenge: null,
+      ranking: null,
+      recentActivities: recent.map((a) => HomeService.mapActivity(a)),
+    };
+  }
+
+  private static mapActivity(a: {
+    id: string;
+    title: string;
+    distanceKm: number;
+    pace: string | null;
+    source: string;
+    counts: boolean;
+    skipReason: string | null;
+    startedAt: Date;
+  }) {
+    return {
+      id: a.id,
+      title: a.title,
+      distanceKm: a.distanceKm,
+      pace: a.pace,
+      source: a.source,
+      counts: a.counts,
+      skipReason: a.skipReason,
+      startedAt: a.startedAt,
     };
   }
 
@@ -64,7 +108,6 @@ export class HomeService {
     const challenge = await this.prisma.challenge.findUnique({
       where: { id: challengeId },
     });
-
     if (!challenge) return null;
 
     const allProgress = await this.prisma.$queryRaw<

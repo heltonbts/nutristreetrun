@@ -3,6 +3,7 @@ import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ActivitiesModule } from './activities/activities.module';
 import { AuthModule } from './auth/auth.module';
+import { ChallengesModule } from './challenges/challenges.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { HomeModule } from './home/home.module';
 import { PrismaModule } from './prisma/prisma.module';
@@ -21,6 +22,7 @@ import { StravaModule } from './strava/strava.module';
     PrismaModule,
     AuthModule,
     HomeModule,
+    ChallengesModule,
     ActivitiesModule,
     StravaModule,
     RankingModule,
