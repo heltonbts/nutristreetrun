@@ -14,6 +14,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddressScreen } from '../../src/screens/AddressScreen';
+import { ConnectionsScreen } from '../../src/screens/ConnectionsScreen';
 import { EditProfileScreen } from '../../src/screens/EditProfileScreen';
 import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
@@ -114,6 +115,7 @@ export default function ProfileScreen() {
   const [showMedals, setShowMedals] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showAddress, setShowAddress] = useState(false);
+  const [showConnections, setShowConnections] = useState(false);
 
   const { data, isLoading } = useQuery<ProfileData>({
     queryKey: ['profile'],
@@ -316,7 +318,7 @@ export default function ProfileScreen() {
           <SettingRow
             label="Conexões"
             sub={data?.strava.connected ? 'Strava conectado' : 'Nenhuma conexão ativa'}
-            onPress={syncing ? undefined : syncStrava}
+            onPress={() => setShowConnections(true)}
           />
           <SettingRow label="Notificações" sub="Diárias" />
           <SettingRow label="Ajuda & suporte" />
@@ -336,6 +338,16 @@ export default function ProfileScreen() {
               assessoria: data.user.assessoria,
             }}
             onClose={() => setShowEditProfile(false)}
+          />
+        )}
+      </Modal>
+
+      {/* Modal conexões */}
+      <Modal visible={showConnections} animationType="slide" presentationStyle="pageSheet">
+        {data && (
+          <ConnectionsScreen
+            strava={data.strava}
+            onClose={() => setShowConnections(false)}
           />
         )}
       </Modal>
