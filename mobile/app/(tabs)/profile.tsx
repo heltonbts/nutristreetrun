@@ -329,8 +329,8 @@ export default function ProfileScreen() {
             initial={{
               name: data.user.name,
               phone: data.user.phone,
-              city: data.user.city,
-              state: data.user.state,
+              city: data.user.city ?? data.address.deliveryCity,
+              state: data.user.state ?? data.address.deliveryState,
               assessoria: data.user.assessoria,
             }}
             onClose={() => setShowEditProfile(false)}
