@@ -80,7 +80,7 @@ export function SubscribeScreen({ userId, onClose }: Props) {
         <View style={s.infoCard}>
           <Text style={s.infoTitle}>COMO FUNCIONA A MEDALHA</Text>
           <Text style={s.infoText}>
-            Cada mês tem uma meta de km. Cumpriu até o último dia, a medalha física do mês é enviada pro endereço cadastrado — sem custo extra, sem letra miúda. Não cumpriu, a medalha do mês não é emitida.
+            Cada mês tem uma meta de km. Cumpriu até o último dia, a medalha física do mês é enviada pro endereço cadastrado, sem custo extra, sem letra miúda. Não cumpriu, a medalha do mês não é emitida.
           </Text>
         </View>
 

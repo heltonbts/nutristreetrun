@@ -187,7 +187,7 @@ export default function HomeScreen() {
               {'ESCOLHA\nSEU\nDESAFIO.'}
             </Text>
             <Text style={[s.challengeSub, { marginTop: 14, maxWidth: 280 }]}>
-              Você ainda não entrou no desafio de {monthLabel().toLowerCase()}. Escolha sua meta de km — só uma medalha por mês.
+              Você ainda não entrou no desafio de {monthLabel().toLowerCase()}. Escolha sua meta de km. Só uma medalha por mês.
             </Text>
 
             <Pressable style={s.pickBtn} onPress={() => setShowPicker(true)}>
