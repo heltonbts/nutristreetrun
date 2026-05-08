@@ -5,6 +5,7 @@ import {
   ActivityIndicator,
   Alert,
   Image,
+  Modal,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -12,6 +13,8 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { AddressScreen } from '../../src/screens/AddressScreen';
+import { EditProfileScreen } from '../../src/screens/EditProfileScreen';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
 import { useAuthStore } from '../../src/store/auth.store';
@@ -43,6 +46,15 @@ interface ProfileData {
     goalKm: number;
     status: string;
   }[];
+  address: {
+    zipCode: string | null;
+    street: string | null;
+    streetNumber: string | null;
+    complement: string | null;
+    neighborhood: string | null;
+    deliveryCity: string | null;
+    deliveryState: string | null;
+  };
   stats: { totalMedals: number; totalKm: number; monthsActive: number };
 }
 
@@ -99,6 +111,8 @@ export default function ProfileScreen() {
   const [uploading, setUploading] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [showMedals, setShowMedals] = useState(false);
+  const [showEditProfile, setShowEditProfile] = useState(false);
+  const [showAddress, setShowAddress] = useState(false);
 
   const { data, isLoading } = useQuery<ProfileData>({
     queryKey: ['profile'],
@@ -288,16 +302,51 @@ export default function ProfileScreen() {
         {/* Settings */}
         <View style={[s.settingsCard, { marginTop: 24 }]}>
           <SettingRow
+            label="Editar perfil"
+            sub={data?.user.name}
+            onPress={() => setShowEditProfile(true)}
+          />
+          <SettingRow
+            label="Endereço de entrega"
+            sub={data?.address.zipCode ? `CEP ${data.address.zipCode}` : 'Configurar'}
+            onPress={() => setShowAddress(true)}
+          />
+          <SettingRow
             label="Conexões"
             sub={data?.strava.connected ? 'Strava conectado' : 'Nenhuma conexão ativa'}
             onPress={syncing ? undefined : syncStrava}
           />
           <SettingRow label="Notificações" sub="Diárias" />
-          <SettingRow label="Endereço de entrega" sub="Configurar" />
           <SettingRow label="Ajuda & suporte" />
           <SettingRow label="Sair da conta" onPress={logout} last />
         </View>
       </View>
+
+      {/* Modal editar perfil */}
+      <Modal visible={showEditProfile} animationType="slide" presentationStyle="pageSheet">
+        {data && (
+          <EditProfileScreen
+            initial={{
+              name: data.user.name,
+              phone: data.user.phone,
+              city: data.user.city,
+              state: data.user.state,
+              assessoria: data.user.assessoria,
+            }}
+            onClose={() => setShowEditProfile(false)}
+          />
+        )}
+      </Modal>
+
+      {/* Modal endereço */}
+      <Modal visible={showAddress} animationType="slide" presentationStyle="pageSheet">
+        {data && (
+          <AddressScreen
+            initial={data.address}
+            onClose={() => setShowAddress(false)}
+          />
+        )}
+      </Modal>
     </ScrollView>
   );
 }
@@ -314,7 +363,6 @@ const s = StyleSheet.create({
     borderBottomWidth: 1,
     borderBottomColor: colors.line,
     backgroundColor: colors.bg,
-    backgroundImage: undefined,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
   avatarWrap: { position: 'relative' },
