@@ -1,6 +1,7 @@
 import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScreenTransition } from '../../src/components/ScreenTransition';
 import Svg, {
   Circle,
   Defs,
@@ -148,6 +149,7 @@ export default function HomeScreen() {
   const goalLabel = c ? `${c.goalKm}K` : '—';
 
   return (
+    <ScreenTransition>
     <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 32 }}>
 
       {/* ── HERO BANNER ── */}
@@ -260,6 +262,7 @@ export default function HomeScreen() {
         </View>
       )}
     </ScrollView>
+    </ScreenTransition>
   );
 }
 

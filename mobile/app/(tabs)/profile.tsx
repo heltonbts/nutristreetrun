@@ -15,6 +15,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddressScreen } from '../../src/screens/AddressScreen';
 import { EditProfileScreen } from '../../src/screens/EditProfileScreen';
+import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
 import { useAuthStore } from '../../src/store/auth.store';
@@ -203,6 +204,7 @@ export default function ProfileScreen() {
 
   /* ── Tela principal ── */
   return (
+    <ScreenTransition>
     <ScrollView
       style={s.root}
       contentContainerStyle={{ paddingBottom: 32 + insets.bottom }}
@@ -348,6 +350,7 @@ export default function ProfileScreen() {
         )}
       </Modal>
     </ScrollView>
+    </ScreenTransition>
   );
 }
 

@@ -8,6 +8,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
@@ -126,6 +127,7 @@ export default function RankingScreen() {
   });
 
   return (
+    <ScreenTransition>
     <View style={[s.root, { paddingTop: insets.top }]}>
       {/* Header */}
       <View style={s.header}>
@@ -178,6 +180,7 @@ export default function RankingScreen() {
         </ScrollView>
       )}
     </View>
+    </ScreenTransition>
   );
 }
 
