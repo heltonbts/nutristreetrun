@@ -13,8 +13,9 @@ model User {
   password  String
   name      String
   phone     String
-  city      String?
-  state     String?
+  city       String?
+  state      String?
+  assessoria String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 

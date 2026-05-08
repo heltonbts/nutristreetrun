@@ -7,6 +7,7 @@ interface AuthState {
   isLoading: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (name: string, email: string, phone: string, password: string) => Promise<void>;
+  setToken: (token: string) => Promise<void>;
   logout: () => Promise<void>;
   hydrate: () => Promise<void>;
 }
@@ -32,6 +33,11 @@ export const useAuthStore = create<AuthState>((set) => ({
     });
     await SecureStore.setItemAsync(TOKEN_KEY, data.access_token);
     set({ token: data.access_token });
+  },
+
+  setToken: async (token) => {
+    await SecureStore.setItemAsync(TOKEN_KEY, token);
+    set({ token });
   },
 
   logout: async () => {

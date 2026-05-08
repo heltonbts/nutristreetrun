@@ -30,6 +30,7 @@ export class AuthService {
         email: dto.email,
         phone: dto.phone,
         password: hashed,
+        assessoria: dto.assessoria,
       },
     });
 
