@@ -17,6 +17,7 @@ import { AddressScreen } from '../../src/screens/AddressScreen';
 import { ConnectionsScreen } from '../../src/screens/ConnectionsScreen';
 import { EditProfileScreen } from '../../src/screens/EditProfileScreen';
 import { MedalsScreen } from '../../src/screens/MedalsScreen';
+import { SubscribeScreen } from '../../src/screens/SubscribeScreen';
 import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
@@ -103,6 +104,7 @@ export default function ProfileScreen() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showAddress, setShowAddress] = useState(false);
   const [showConnections, setShowConnections] = useState(false);
+  const [showSubscribe, setShowSubscribe] = useState(false);
 
   const { data, isLoading } = useQuery<ProfileData>({
     queryKey: ['profile'],
@@ -272,7 +274,7 @@ export default function ProfileScreen() {
           </View>
           <View style={s.planBottom}>
             <Text style={s.planPrice}>R$ 49,90/mês</Text>
-            <Pressable style={s.benefitsBtn}>
+            <Pressable style={s.benefitsBtn} onPress={() => setShowSubscribe(true)}>
               <Text style={s.benefitsBtnText}>VER BENEFÍCIOS</Text>
             </Pressable>
           </View>
@@ -323,6 +325,16 @@ export default function ProfileScreen() {
           <ConnectionsScreen
             strava={data.strava}
             onClose={() => setShowConnections(false)}
+          />
+        )}
+      </Modal>
+
+      {/* Modal inscrição */}
+      <Modal visible={showSubscribe} animationType="slide" presentationStyle="fullScreen">
+        {data && (
+          <SubscribeScreen
+            userId={data.user.id}
+            onClose={() => setShowSubscribe(false)}
           />
         )}
       </Modal>
