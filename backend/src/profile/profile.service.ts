@@ -1,5 +1,12 @@
 import { Injectable } from '@nestjs/common';
+import { v2 as cloudinary } from 'cloudinary';
 import { PrismaService } from '../prisma/prisma.service';
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET,
+});
 
 @Injectable()
 export class ProfileService {
@@ -77,6 +84,7 @@ export class ProfileService {
         city: user.city,
         state: user.state,
         assessoria: user.assessoria,
+        avatarUrl: user.avatarUrl,
       },
       strava: stravaConn
         ? { connected: true, stravaId: stravaConn.stravaId }
@@ -84,5 +92,41 @@ export class ProfileService {
       challenge: challengeData,
       medals,
     };
+  }
+
+  async uploadAvatar(
+    userId: string,
+    buffer: Buffer,
+  ): Promise<{ avatarUrl: string }> {
+    const result = await new Promise<{ secure_url: string }>(
+      (resolve, reject) => {
+        cloudinary.uploader
+          .upload_stream(
+            {
+              folder: 'nsr/avatars',
+              public_id: `user_${userId}`,
+              overwrite: true,
+              transformation: [
+                { width: 256, height: 256, crop: 'fill', gravity: 'face' },
+              ],
+            },
+            (err, res) => {
+              if (err || !res)
+                return reject(
+                  new Error(err?.message ?? 'Cloudinary upload failed'),
+                );
+              resolve(res);
+            },
+          )
+          .end(buffer);
+      },
+    );
+
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { avatarUrl: result.secure_url },
+    });
+
+    return { avatarUrl: result.secure_url };
   }
 }
