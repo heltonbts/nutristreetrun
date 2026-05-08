@@ -1,7 +1,8 @@
 import { Link } from 'expo-router';
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -10,16 +11,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
 import axios from 'axios';
 import { useAuthStore } from '../../src/store/auth.store';
 import { colors, font } from '../../src/lib/tokens';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 function AnimatedButton({
   onPress,
@@ -32,22 +26,26 @@ function AnimatedButton({
   loading: boolean;
   label: string;
 }) {
-  const scale = useSharedValue(1);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const pressIn = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true }).start();
+  const pressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
 
   return (
-    <AnimatedPressable
-      style={[s.btn, style]}
-      disabled={disabled}
-      onPressIn={() => { scale.value = withSpring(0.96); }}
-      onPressOut={() => { scale.value = withSpring(1); }}
-      onPress={onPress}
-    >
-      {loading
-        ? <ActivityIndicator color={colors.brandInk} />
-        : <Text style={s.btnText}>{label}</Text>
-      }
-    </AnimatedPressable>
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Pressable
+        style={s.btn}
+        disabled={disabled}
+        onPressIn={pressIn}
+        onPressOut={pressOut}
+        onPress={onPress}
+      >
+        {loading
+          ? <ActivityIndicator color={colors.brandInk} />
+          : <Text style={s.btnText}>{label}</Text>
+        }
+      </Pressable>
+    </Animated.View>
   );
 }
 
