@@ -16,6 +16,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AddressScreen } from '../../src/screens/AddressScreen';
 import { ConnectionsScreen } from '../../src/screens/ConnectionsScreen';
 import { EditProfileScreen } from '../../src/screens/EditProfileScreen';
+import { MedalsScreen } from '../../src/screens/MedalsScreen';
 import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
@@ -60,20 +61,6 @@ interface ProfileData {
   stats: { totalMedals: number; totalKm: number; monthsActive: number };
 }
 
-const MONTHS = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
-
-const MEDAL_COLOR: Record<string, string> = {
-  PROGRESS: colors.textMute,
-  SHIPPED: colors.brand,
-  DELIVERED: colors.success,
-  MISSED: colors.danger,
-};
-const MEDAL_LABEL: Record<string, string> = {
-  PROGRESS: 'Em andamento',
-  SHIPPED: 'Enviada',
-  DELIVERED: 'Entregue',
-  MISSED: 'Não concluído',
-};
 
 function ChevronRight() {
   return (
@@ -177,30 +164,18 @@ export default function ProfileScreen() {
   }
 
   /* ── Sub-tela medalhas ── */
-  if (showMedals) {
+  if (showMedals && data) {
     return (
-      <View style={[s.root, { paddingTop: insets.top }]}>
-        <Pressable style={s.backBtn} onPress={() => setShowMedals(false)}>
-          <Text style={s.backBtnText}>‹</Text>
-        </Pressable>
-        <ScrollView contentContainerStyle={{ padding: 20, paddingBottom: 32 + insets.bottom }}>
-          <Text style={s.sectionTitle}>MEDALHAS</Text>
-          {data?.medals.length === 0 && (
-            <Text style={s.emptyHint}>Nenhuma medalha ainda.</Text>
-          )}
-          {data?.medals.map((m) => (
-            <View key={m.id} style={s.medalRow}>
-              <View style={{ flex: 1 }}>
-                <Text style={s.medalMonth}>{MONTHS[m.month - 1]} {m.year}</Text>
-                <Text style={s.medalTitle}>{m.title}</Text>
-              </View>
-              <Text style={[s.medalStatus, { color: MEDAL_COLOR[m.status] ?? colors.textMute }]}>
-                {MEDAL_LABEL[m.status] ?? m.status}
-              </Text>
-            </View>
-          ))}
-        </ScrollView>
-      </View>
+      <MedalsScreen
+        medals={data.medals}
+        address={data.address}
+        challenge={data.challenge}
+        onClose={() => setShowMedals(false)}
+        onEditAddress={() => {
+          setShowMedals(false);
+          setShowAddress(true);
+        }}
+      />
     );
   }
 
@@ -475,19 +450,4 @@ const s = StyleSheet.create({
   settingLabel: { fontFamily: font.bodyMedium, fontSize: 14, color: colors.text },
   settingSub: { fontFamily: font.body, fontSize: 11, color: colors.textMute, marginTop: 2 },
 
-  /* Medalhas sub-tela */
-  backBtn: {
-    margin: 16, width: 36, height: 36, borderRadius: 18,
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center', justifyContent: 'center',
-  },
-  backBtnText: { color: colors.text, fontSize: 22, lineHeight: 28 },
-  emptyHint: { fontFamily: font.body, fontSize: 14, color: colors.textMute, textAlign: 'center', marginTop: 40 },
-  medalRow: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: colors.line,
-  },
-  medalMonth: { fontFamily: font.bodyBold, fontSize: 11, color: colors.textMute, letterSpacing: 1 },
-  medalTitle: { fontFamily: 'BebasNeue_400Regular', fontSize: 18, color: colors.text, lineHeight: 20, marginTop: 2 },
-  medalStatus: { fontFamily: font.bodyMedium, fontSize: 12 },
 });
