@@ -16,7 +16,14 @@ model User {
   city       String?
   state      String?
   assessoria String?
-  avatarUrl  String?
+  avatarUrl    String?
+  zipCode      String?
+  street       String?
+  streetNumber String?
+  complement   String?
+  neighborhood String?
+  deliveryCity  String?
+  deliveryState String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
