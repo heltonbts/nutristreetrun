@@ -25,6 +25,16 @@ export class RegisterDto {
   @MinLength(6)
   password: string;
 
+  @ApiPropertyOptional({ example: 'São Paulo' })
+  @IsOptional()
+  @IsString()
+  city?: string;
+
+  @ApiPropertyOptional({ example: 'SP' })
+  @IsOptional()
+  @IsString()
+  state?: string;
+
   @ApiPropertyOptional({ example: 'Pace Livre Run Club' })
   @IsOptional()
   @IsString()

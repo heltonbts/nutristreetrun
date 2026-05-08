@@ -6,6 +6,7 @@ import { AuthModule } from './auth/auth.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { HomeModule } from './home/home.module';
 import { PrismaModule } from './prisma/prisma.module';
+import { RankingModule } from './ranking/ranking.module';
 import { StravaModule } from './strava/strava.module';
 
 @Module({
@@ -21,6 +22,7 @@ import { StravaModule } from './strava/strava.module';
     HomeModule,
     ActivitiesModule,
     StravaModule,
+    RankingModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },

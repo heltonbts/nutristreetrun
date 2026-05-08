@@ -30,6 +30,8 @@ export class AuthService {
         email: dto.email,
         phone: dto.phone,
         password: hashed,
+        city: dto.city,
+        state: dto.state,
         assessoria: dto.assessoria,
       },
     });

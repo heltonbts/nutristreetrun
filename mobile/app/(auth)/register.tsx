@@ -98,6 +98,8 @@ export default function RegisterScreen() {
   const [confirmPassword, setConfirmPassword] = useState('');
 
   // Step 2
+  const [city, setCity] = useState('');
+  const [state, setState] = useState('');
   const [assessoria, setAssessoria] = useState('');
 
   const [error, setError] = useState('');
@@ -134,6 +136,8 @@ export default function RegisterScreen() {
         email: email.trim(),
         phone: formattedPhone,
         password,
+        ...(city.trim() && { city: city.trim() }),
+        ...(state.trim() && { state: state.trim().toUpperCase().slice(0, 2) }),
         ...(assessoria.trim() && { assessoria: assessoria.trim() }),
       });
       setPendingToken(data.access_token);
@@ -247,9 +251,29 @@ export default function RegisterScreen() {
               <Text style={s.subtitle}>Pertence a uma assessoria de corrida?{'\n'}Inclua-a no ranking gratuitamente.</Text>
             </View>
             <View style={s.form}>
+              <View style={{ flexDirection: 'row', gap: 10 }}>
+                <TextInput
+                  style={[s.input, { flex: 1 }]}
+                  placeholder="Cidade"
+                  placeholderTextColor={colors.textMute}
+                  value={city}
+                  onChangeText={setCity}
+                  autoCorrect={false}
+                />
+                <TextInput
+                  style={[s.input, { width: 64, textAlign: 'center' }]}
+                  placeholder="UF"
+                  placeholderTextColor={colors.textMute}
+                  value={state}
+                  onChangeText={setState}
+                  autoCapitalize="characters"
+                  autoCorrect={false}
+                  maxLength={2}
+                />
+              </View>
               <TextInput
                 style={s.input}
-                placeholder="Ex: Pace Livre Run Club (opcional)"
+                placeholder="Assessoria (opcional)"
                 placeholderTextColor={colors.textMute}
                 value={assessoria}
                 onChangeText={setAssessoria}
