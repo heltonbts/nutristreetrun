@@ -60,11 +60,17 @@ export class ProfileService {
       };
     }
 
-    const userChallenges = await this.prisma.userChallenge.findMany({
-      where: { userId },
-      include: { challenge: true },
-      orderBy: { challenge: { startsAt: 'desc' } },
-    });
+    const [userChallenges, allActivities] = await Promise.all([
+      this.prisma.userChallenge.findMany({
+        where: { userId },
+        include: { challenge: true },
+        orderBy: { challenge: { startsAt: 'desc' } },
+      }),
+      this.prisma.activity.findMany({
+        where: { userId, counts: true },
+        select: { distanceKm: true },
+      }),
+    ]);
 
     const medals = userChallenges.map((uc) => ({
       id: uc.id,
@@ -74,6 +80,13 @@ export class ProfileService {
       goalKm: uc.challenge.goalKm,
       status: uc.medalStatus,
     }));
+
+    const totalMedals = userChallenges.filter((uc) =>
+      ['SHIPPED', 'DELIVERED'].includes(uc.medalStatus),
+    ).length;
+    const totalKm =
+      Math.round(allActivities.reduce((s, a) => s + a.distanceKm, 0) * 10) / 10;
+    const monthsActive = userChallenges.length;
 
     return {
       user: {
@@ -91,6 +104,7 @@ export class ProfileService {
         : { connected: false, stravaId: null },
       challenge: challengeData,
       medals,
+      stats: { totalMedals, totalKm, monthsActive },
     };
   }
 
