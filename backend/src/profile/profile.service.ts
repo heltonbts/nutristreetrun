@@ -99,6 +99,15 @@ export class ProfileService {
         assessoria: user.assessoria,
         avatarUrl: user.avatarUrl,
       },
+      address: {
+        zipCode: user.zipCode,
+        street: user.street,
+        streetNumber: user.streetNumber,
+        complement: user.complement,
+        neighborhood: user.neighborhood,
+        deliveryCity: user.deliveryCity,
+        deliveryState: user.deliveryState,
+      },
       strava: stravaConn
         ? { connected: true, stravaId: stravaConn.stravaId }
         : { connected: false, stravaId: null },
@@ -106,6 +115,62 @@ export class ProfileService {
       medals,
       stats: { totalMedals, totalKm, monthsActive },
     };
+  }
+
+  async updateProfile(
+    userId: string,
+    dto: {
+      name?: string;
+      phone?: string;
+      city?: string;
+      state?: string;
+      assessoria?: string;
+    },
+  ) {
+    const user = await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        ...(dto.name !== undefined && { name: dto.name }),
+        ...(dto.phone !== undefined && { phone: dto.phone }),
+        ...(dto.city !== undefined && { city: dto.city }),
+        ...(dto.state !== undefined && { state: dto.state }),
+        ...(dto.assessoria !== undefined && { assessoria: dto.assessoria }),
+      },
+    });
+    return {
+      name: user.name,
+      phone: user.phone,
+      city: user.city,
+      state: user.state,
+      assessoria: user.assessoria,
+    };
+  }
+
+  async updateAddress(
+    userId: string,
+    dto: {
+      zipCode: string;
+      street: string;
+      streetNumber: string;
+      complement?: string;
+      neighborhood: string;
+      deliveryCity: string;
+      deliveryState: string;
+    },
+  ) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: {
+        zipCode: dto.zipCode,
+        street: dto.street,
+        streetNumber: dto.streetNumber,
+        complement: dto.complement ?? null,
+        neighborhood: dto.neighborhood,
+        deliveryCity: dto.deliveryCity,
+        deliveryState: dto.deliveryState,
+      },
+    });
+    return { ok: true };
   }
 
   async uploadAvatar(
