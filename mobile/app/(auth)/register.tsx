@@ -2,6 +2,7 @@ import { Link } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -12,16 +13,9 @@ import {
   View,
 } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
-import Animated, {
-  useSharedValue,
-  useAnimatedStyle,
-  withSpring,
-} from 'react-native-reanimated';
 import { useAuthStore } from '../../src/store/auth.store';
 import { colors, font } from '../../src/lib/tokens';
 import axios from 'axios';
-
-const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 function AnimatedButton({
   onPress,
@@ -34,39 +28,53 @@ function AnimatedButton({
   loading: boolean;
   label: string;
 }) {
-  const scale = useSharedValue(1);
-  const style = useAnimatedStyle(() => ({ transform: [{ scale: scale.value }] }));
+  const scale = useRef(new Animated.Value(1)).current;
+
+  const pressIn = () => Animated.spring(scale, { toValue: 0.96, useNativeDriver: true }).start();
+  const pressOut = () => Animated.spring(scale, { toValue: 1, useNativeDriver: true }).start();
 
   return (
-    <AnimatedPressable
-      style={[s.btn, style]}
-      disabled={disabled}
-      onPressIn={() => { scale.value = withSpring(0.96); }}
-      onPressOut={() => { scale.value = withSpring(1); }}
-      onPress={onPress}
-    >
-      {loading
-        ? <ActivityIndicator color={colors.brandInk} />
-        : <Text style={s.btnText}>{label}</Text>
-      }
-    </AnimatedPressable>
+    <Animated.View style={{ transform: [{ scale }] }}>
+      <Pressable
+        style={s.btn}
+        disabled={disabled}
+        onPressIn={pressIn}
+        onPressOut={pressOut}
+        onPress={onPress}
+      >
+        {loading
+          ? <ActivityIndicator color={colors.brandInk} />
+          : <Text style={s.btnText}>{label}</Text>
+        }
+      </Pressable>
+    </Animated.View>
   );
 }
 
 export default function RegisterScreen() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
+  const [confirmEmail, setConfirmEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [formattedPhone, setFormattedPhone] = useState('');
   const [password, setPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
   const phoneRef = useRef<PhoneInput>(null);
   const register = useAuthStore((s) => s.register);
 
   async function handleRegister() {
-    if (!name || !email || !formattedPhone || !password) {
+    if (!name || !email || !confirmEmail || !formattedPhone || !password || !confirmPassword) {
       setError('Preencha todos os campos');
+      return;
+    }
+    if (email.trim() !== confirmEmail.trim()) {
+      setError('Os e-mails não coincidem');
+      return;
+    }
+    if (password !== confirmPassword) {
+      setError('As senhas não coincidem');
       return;
     }
     setLoading(true);
@@ -110,8 +118,19 @@ export default function RegisterScreen() {
             placeholderTextColor={colors.textMute}
             keyboardType="email-address"
             autoCapitalize="none"
+            autoCorrect={false}
             value={email}
             onChangeText={setEmail}
+          />
+          <TextInput
+            style={s.input}
+            placeholder="Confirmar e-mail"
+            placeholderTextColor={colors.textMute}
+            keyboardType="email-address"
+            autoCapitalize="none"
+            autoCorrect={false}
+            value={confirmEmail}
+            onChangeText={setConfirmEmail}
           />
 
           <PhoneInput
@@ -127,6 +146,7 @@ export default function RegisterScreen() {
             codeTextStyle={s.phoneCode}
             flagButtonStyle={s.phoneFlag}
             countryPickerButtonStyle={s.phoneFlag}
+            countryPickerProps={{ withEmoji: true, withFilter: true, withFlag: true }}
           />
 
           <TextInput
@@ -136,6 +156,14 @@ export default function RegisterScreen() {
             secureTextEntry
             value={password}
             onChangeText={setPassword}
+          />
+          <TextInput
+            style={s.input}
+            placeholder="Confirmar senha"
+            placeholderTextColor={colors.textMute}
+            secureTextEntry
+            value={confirmPassword}
+            onChangeText={setConfirmPassword}
           />
 
           {error ? <Text style={s.error}>{error}</Text> : null}
@@ -201,6 +229,9 @@ const s = StyleSheet.create({
   },
   phoneFlag: {
     backgroundColor: colors.card,
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   error: { fontFamily: font.body, fontSize: 13, color: colors.danger },
   btn: {
