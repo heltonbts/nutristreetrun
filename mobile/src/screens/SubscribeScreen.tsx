@@ -1,13 +1,6 @@
-import {
-  Alert,
-  Linking,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Alert, Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { colors, font } from '../lib/tokens';
 
 interface Props {
@@ -17,8 +10,14 @@ interface Props {
 
 const BENEFITS = [
   { t: 'Desafio mensal', d: 'Meta de km que cresce com você. Cumpriu, ganhou medalha.' },
-  { t: 'Medalha física em casa', d: 'Cumpriu a meta? A medalha do mês é enviada pro endereço cadastrado, sem custo extra.' },
-  { t: 'Ranking real', d: 'Compita por cidade, estado e assessoria. Ranking atualiza em tempo real.' },
+  {
+    t: 'Medalha física em casa',
+    d: 'Cumpriu a meta? A medalha do mês é enviada pro endereço cadastrado, sem custo extra.',
+  },
+  {
+    t: 'Ranking real',
+    d: 'Compita por cidade, estado e assessoria. Ranking atualiza em tempo real.',
+  },
   { t: 'Sync automático', d: 'Strava + Apple Health + Google Fit. Você corre, a gente conta.' },
   { t: 'Feed da comunidade', d: 'Veja o que sua assessoria e seus pares estão fazendo.' },
   { t: 'Conteúdo NutriSilva', d: 'Acesso ao ecossistema do nutricionista esportivo Dr. Silva.' },
@@ -44,7 +43,10 @@ export function SubscribeScreen({ userId, onClose }: Props) {
 
   return (
     <View style={[s.root, { paddingTop: insets.top }]}>
-      <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}>
+      <ScrollView
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+      >
         {/* Header gradiente */}
         <View style={s.headerGrad}>
           <Pressable style={s.backBtn} onPress={onClose}>
@@ -80,7 +82,9 @@ export function SubscribeScreen({ userId, onClose }: Props) {
         <View style={s.infoCard}>
           <Text style={s.infoTitle}>COMO FUNCIONA A MEDALHA</Text>
           <Text style={s.infoText}>
-            Cada mês tem uma meta de km. Cumpriu até o último dia, a medalha física do mês é enviada pro endereço cadastrado, sem custo extra, sem letra miúda. Não cumpriu, a medalha do mês não é emitida.
+            Cada mês tem uma meta de km. Cumpriu até o último dia, a medalha física do mês é enviada
+            pro endereço cadastrado, sem custo extra, sem letra miúda. Não cumpriu, a medalha do mês
+            não é emitida.
           </Text>
         </View>
 
@@ -88,7 +92,8 @@ export function SubscribeScreen({ userId, onClose }: Props) {
         <View style={s.assessoriaCard}>
           <Text style={s.infoTitle}>ASSESSORIAS PARTICIPAM DE GRAÇA</Text>
           <Text style={s.infoText}>
-            Sua assessoria de corrida pode aparecer no ranking sem pagar nada. Visibilidade pra ela, mais um motivo de orgulho pros corredores.
+            Sua assessoria de corrida pode aparecer no ranking sem pagar nada. Visibilidade pra ela,
+            mais um motivo de orgulho pros corredores.
           </Text>
         </View>
 
@@ -115,84 +120,127 @@ const s = StyleSheet.create({
     backgroundColor: colors.brand,
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(0,0,0,0.2)',
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
     marginBottom: 16,
   },
   backArrow: { color: '#fff', fontSize: 26, lineHeight: 30 },
   kicker: {
-    fontFamily: font.bodyBold, fontSize: 11,
-    color: 'rgba(0,0,0,0.6)', letterSpacing: 2,
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: 'rgba(0,0,0,0.6)',
+    letterSpacing: 2,
   },
   bigTitle: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 64,
-    color: '#0A0F0E', lineHeight: 56, letterSpacing: 0.5, marginTop: 6,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 64,
+    color: '#0A0F0E',
+    lineHeight: 56,
+    letterSpacing: 0.5,
+    marginTop: 6,
   },
   priceRow: { flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 18 },
   price: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 56,
-    color: '#0A0F0E', lineHeight: 58,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 56,
+    color: '#0A0F0E',
+    lineHeight: 58,
   },
   pricePer: { fontFamily: font.bodyBold, fontSize: 14, color: 'rgba(0,0,0,0.6)' },
 
   // Benefits
   section: { padding: 20, paddingBottom: 4 },
   sectionLabel: {
-    fontFamily: font.bodyBold, fontSize: 11,
-    color: colors.textMute, letterSpacing: 1.6, marginBottom: 16,
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.textMute,
+    letterSpacing: 1.6,
+    marginBottom: 16,
   },
   benefitsList: { gap: 14 },
   benefitRow: { flexDirection: 'row', gap: 14 },
   benefitNum: {
-    width: 28, height: 28, borderRadius: 14,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
     backgroundColor: colors.brand,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   benefitNumText: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 14,
-    color: colors.brandInk, lineHeight: 16,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 14,
+    color: colors.brandInk,
+    lineHeight: 16,
   },
   benefitTitle: { fontFamily: font.bodyBold, fontSize: 14, color: colors.text },
   benefitDesc: {
-    fontFamily: font.body, fontSize: 12,
-    color: colors.textDim, marginTop: 2, lineHeight: 17,
+    fontFamily: font.body,
+    fontSize: 12,
+    color: colors.textDim,
+    marginTop: 2,
+    lineHeight: 17,
   },
 
   // Info cards
   infoCard: {
-    marginHorizontal: 20, marginTop: 20,
-    padding: 18, borderRadius: 14,
+    marginHorizontal: 20,
+    marginTop: 20,
+    padding: 18,
+    borderRadius: 14,
     backgroundColor: 'rgba(95,184,168,0.05)',
-    borderWidth: 1, borderColor: 'rgba(95,184,168,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(95,184,168,0.18)',
   },
   assessoriaCard: {
-    marginHorizontal: 20, marginTop: 12,
-    padding: 18, borderRadius: 14,
+    marginHorizontal: 20,
+    marginTop: 12,
+    padding: 18,
+    borderRadius: 14,
     backgroundColor: colors.card,
-    borderWidth: 1, borderColor: colors.line,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   infoTitle: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 22,
-    color: colors.text, letterSpacing: 0.4, marginBottom: 8, lineHeight: 24,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    color: colors.text,
+    letterSpacing: 0.4,
+    marginBottom: 8,
+    lineHeight: 24,
   },
   infoText: {
-    fontFamily: font.body, fontSize: 13,
-    color: colors.textDim, lineHeight: 20,
+    fontFamily: font.body,
+    fontSize: 13,
+    color: colors.textDim,
+    lineHeight: 20,
   },
 
   // CTA
   ctaWrap: { padding: 20, paddingTop: 24 },
   ctaBtn: {
-    backgroundColor: colors.brand, borderRadius: 14,
-    paddingVertical: 18, alignItems: 'center',
+    backgroundColor: colors.brand,
+    borderRadius: 14,
+    paddingVertical: 18,
+    alignItems: 'center',
   },
   ctaBtnText: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 22,
-    color: colors.brandInk, letterSpacing: 1,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    color: colors.brandInk,
+    letterSpacing: 1,
   },
   ctaHint: {
-    fontFamily: font.body, fontSize: 11,
-    color: colors.textMute, textAlign: 'center', marginTop: 10, lineHeight: 16,
+    fontFamily: font.body,
+    fontSize: 11,
+    color: colors.textMute,
+    textAlign: 'center',
+    marginTop: 10,
+    lineHeight: 16,
   },
 });

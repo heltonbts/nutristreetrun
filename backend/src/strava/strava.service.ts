@@ -1,4 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
+
 import { PrismaService } from '../prisma/prisma.service';
 
 const STRAVA_API = 'https://www.strava.com/api/v3';

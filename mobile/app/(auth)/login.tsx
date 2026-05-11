@@ -1,3 +1,4 @@
+import axios from 'axios';
 import { Link } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
@@ -11,9 +12,9 @@ import {
   TextInput,
   View,
 } from 'react-native';
-import axios from 'axios';
-import { useAuthStore } from '../../src/store/auth.store';
+
 import { colors, font } from '../../src/lib/tokens';
+import { useAuthStore } from '../../src/store/auth.store';
 
 function AnimatedButton({
   onPress,
@@ -40,10 +41,11 @@ function AnimatedButton({
         onPressOut={pressOut}
         onPress={onPress}
       >
-        {loading
-          ? <ActivityIndicator color={colors.brandInk} />
-          : <Text style={s.btnText}>{label}</Text>
-        }
+        {loading ? (
+          <ActivityIndicator color={colors.brandInk} />
+        ) : (
+          <Text style={s.btnText}>{label}</Text>
+        )}
       </Pressable>
     </Animated.View>
   );
@@ -105,12 +107,7 @@ export default function LoginScreen() {
 
         {error ? <Text style={s.error}>{error}</Text> : null}
 
-        <AnimatedButton
-          onPress={handleLogin}
-          disabled={loading}
-          loading={loading}
-          label="ENTRAR"
-        />
+        <AnimatedButton onPress={handleLogin} disabled={loading} loading={loading} label="ENTRAR" />
 
         <Link href="/(auth)/register" asChild>
           <Pressable style={s.linkBtn}>
@@ -128,7 +125,13 @@ const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: colors.bg, justifyContent: 'center', padding: 24 },
   header: { marginBottom: 48 },
   kicker: { fontFamily: font.bodyBold, fontSize: 11, color: colors.brand, letterSpacing: 2.4 },
-  title: { fontFamily: 'BebasNeue_400Regular', fontSize: 72, color: colors.text, lineHeight: 72, marginTop: 8 },
+  title: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 72,
+    color: colors.text,
+    lineHeight: 72,
+    marginTop: 8,
+  },
   form: { gap: 12 },
   input: {
     backgroundColor: colors.card,
@@ -148,7 +151,12 @@ const s = StyleSheet.create({
     alignItems: 'center',
     marginTop: 4,
   },
-  btnText: { fontFamily: 'BebasNeue_400Regular', fontSize: 22, color: colors.brandInk, letterSpacing: 1 },
+  btnText: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    color: colors.brandInk,
+    letterSpacing: 1,
+  },
   linkBtn: { alignItems: 'center', marginTop: 8 },
   link: { fontFamily: font.body, fontSize: 14, color: colors.textDim },
 });

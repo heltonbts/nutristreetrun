@@ -1,5 +1,6 @@
 import * as SecureStore from 'expo-secure-store';
 import { create } from 'zustand';
+
 import { api, TOKEN_KEY } from '../lib/api';
 
 interface AuthState {
@@ -29,7 +30,10 @@ export const useAuthStore = create<AuthState>((set) => ({
 
   register: async (name, email, phone, password) => {
     const { data } = await api.post<{ access_token: string }>('/auth/register', {
-      name, email, phone, password,
+      name,
+      email,
+      phone,
+      password,
     });
     await SecureStore.setItemAsync(TOKEN_KEY, data.access_token);
     set({ token: data.access_token });

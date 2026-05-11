@@ -1,12 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
-import {
-  ActivityIndicator,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
@@ -74,7 +69,9 @@ function ActivityRow({ act }: { act: Activity }) {
     <View style={s.actRow}>
       <RunnerIcon valid={act.counts} />
       <View style={s.actInfo}>
-        <Text style={s.actTitle} numberOfLines={1}>{act.title}</Text>
+        <Text style={s.actTitle} numberOfLines={1}>
+          {act.title}
+        </Text>
         <Text style={s.actMeta}>
           {formatDate(act.startedAt)} · {act.source}
           {!act.counts && act.skipReason ? (
@@ -84,7 +81,8 @@ function ActivityRow({ act }: { act: Activity }) {
       </View>
       <View style={s.actRight}>
         <Text style={s.actKm}>
-          {act.distanceKm.toFixed(1)}<Text style={s.actKmUnit}> km</Text>
+          {act.distanceKm.toFixed(1)}
+          <Text style={s.actKmUnit}> km</Text>
         </Text>
         {act.counts ? (
           <Text style={s.pillValid}>✓ CONTA</Text>
@@ -122,7 +120,9 @@ export default function RunsScreen() {
   });
 
   const now = new Date();
-  const monthLabel = now.toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' }).toUpperCase();
+  const monthLabel = now
+    .toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
+    .toUpperCase();
 
   const validActs = activities?.filter((a) => a.counts) ?? [];
   const totalKm = validActs.reduce((s, a) => s + a.distanceKm, 0);

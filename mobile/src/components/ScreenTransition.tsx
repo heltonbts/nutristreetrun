@@ -1,6 +1,7 @@
 import { useFocusEffect } from 'expo-router';
 import { useCallback, useRef } from 'react';
 import { Animated, StyleSheet } from 'react-native';
+
 import { colors } from '../lib/tokens';
 
 interface Props {
@@ -37,7 +38,6 @@ export function ScreenTransition({ children, distance = 10, duration = 220 }: Pr
       {children}
     </Animated.View>
   );
-
 }
 
 const s = StyleSheet.create({

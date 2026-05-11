@@ -9,8 +9,9 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
-import { useAuthStore } from '../src/store/auth.store';
+
 import { colors } from '../src/lib/tokens';
+import { useAuthStore } from '../src/store/auth.store';
 
 const queryClient = new QueryClient();
 

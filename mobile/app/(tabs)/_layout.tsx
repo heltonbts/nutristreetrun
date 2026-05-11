@@ -1,7 +1,8 @@
 import { Tabs } from 'expo-router';
 import { Platform } from 'react-native';
-import { colors, font } from '../../src/lib/tokens';
+
 import { TabIcon } from '../../src/components/TabIcon';
+import { colors, font } from '../../src/lib/tokens';
 
 export default function TabsLayout() {
   return (
@@ -27,11 +28,41 @@ export default function TabsLayout() {
         },
       }}
     >
-      <Tabs.Screen name="index" options={{ title: 'Home', tabBarIcon: ({ color }) => <TabIcon name="home" color={color} /> }} />
-      <Tabs.Screen name="ranking" options={{ title: 'Ranking', tabBarIcon: ({ color }) => <TabIcon name="ranking" color={color} /> }} />
-      <Tabs.Screen name="feed" options={{ title: 'Feed', tabBarIcon: ({ color }) => <TabIcon name="feed" color={color} /> }} />
-      <Tabs.Screen name="runs" options={{ title: 'Corridas', tabBarIcon: ({ color }) => <TabIcon name="runs" color={color} /> }} />
-      <Tabs.Screen name="profile" options={{ title: 'Perfil', tabBarIcon: ({ color }) => <TabIcon name="profile" color={color} /> }} />
+      <Tabs.Screen
+        name="index"
+        options={{
+          title: 'Home',
+          tabBarIcon: ({ color }) => <TabIcon name="home" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="ranking"
+        options={{
+          title: 'Ranking',
+          tabBarIcon: ({ color }) => <TabIcon name="ranking" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="feed"
+        options={{
+          title: 'Feed',
+          tabBarIcon: ({ color }) => <TabIcon name="feed" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="runs"
+        options={{
+          title: 'Corridas',
+          tabBarIcon: ({ color }) => <TabIcon name="runs" color={color} />,
+        }}
+      />
+      <Tabs.Screen
+        name="profile"
+        options={{
+          title: 'Perfil',
+          tabBarIcon: ({ color }) => <TabIcon name="profile" color={color} />,
+        }}
+      />
     </Tabs>
   );
 }

@@ -1,32 +1,26 @@
-import Svg, { Polygon } from 'react-native-svg';
-import {
-  Dimensions,
-  Pressable,
-  ScrollView,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Polygon } from 'react-native-svg';
+
 import { colors, font } from '../lib/tokens';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
 const CARD_WIDTH = (SCREEN_WIDTH - 40 - 12) / 2;
 
-const MONTHS = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+const MONTHS = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
 const STATUS_LABEL: Record<string, string> = {
-  PROGRESS:  'EM ANDAMENTO',
-  SHIPPED:   'ENVIADA',
+  PROGRESS: 'EM ANDAMENTO',
+  SHIPPED: 'ENVIADA',
   DELIVERED: 'RECEBIDA',
-  MISSED:    'NÃO RECEBIDA',
+  MISSED: 'NÃO RECEBIDA',
 };
 
 const STATUS_COLOR: Record<string, string> = {
-  PROGRESS:  colors.brand,
-  SHIPPED:   colors.brand,
+  PROGRESS: colors.brand,
+  SHIPPED: colors.brand,
   DELIVERED: colors.success,
-  MISSED:    colors.textMute,
+  MISSED: colors.textMute,
 };
 
 type MedalStatus = 'PROGRESS' | 'SHIPPED' | 'DELIVERED' | 'MISSED';
@@ -72,11 +66,17 @@ function hexPoints(size: number, inset = 0): string {
   return `${half},${o} ${h + o},${q} ${h + o},${q3} ${half},${h + o} ${o},${q3} ${o},${q}`;
 }
 
-function MedalHex({ size = 84, label, state }: { size?: number; label: string; state: MedalStatus }) {
+function MedalHex({
+  size = 84,
+  label,
+  state,
+}: {
+  size?: number;
+  label: string;
+  state: MedalStatus;
+}) {
   const ring =
-    state === 'SHIPPED' || state === 'DELIVERED'
-      ? colors.brand
-      : 'rgba(255,255,255,0.18)';
+    state === 'SHIPPED' || state === 'DELIVERED' ? colors.brand : 'rgba(255,255,255,0.18)';
   const fill =
     state === 'DELIVERED'
       ? colors.brand
@@ -129,7 +129,9 @@ function MedalCard({ medal, challenge }: { medal: Medal; challenge: Challenge | 
     <View style={s.card}>
       <MedalHex size={84} label={`${medal.goalKm}K`} state={medal.status} />
 
-      <Text style={s.cardMonth}>{MONTHS[medal.month - 1]} {medal.year}</Text>
+      <Text style={s.cardMonth}>
+        {MONTHS[medal.month - 1]} {medal.year}
+      </Text>
       <Text style={s.cardGoal}>Meta {medal.goalKm}K</Text>
       <Text style={[s.cardStatus, { color: STATUS_COLOR[medal.status] ?? colors.textMute }]}>
         {STATUS_LABEL[medal.status] ?? medal.status}
@@ -140,7 +142,9 @@ function MedalCard({ medal, challenge }: { medal: Medal; challenge: Challenge | 
           <View style={s.barTrack}>
             <View style={[s.barFill, { width: `${pct}%` as any }]} />
           </View>
-          <Text style={s.progressLabel}>{doneKm.toFixed(1)} / {medal.goalKm} km</Text>
+          <Text style={s.progressLabel}>
+            {doneKm.toFixed(1)} / {medal.goalKm} km
+          </Text>
         </View>
       )}
     </View>
@@ -151,9 +155,7 @@ export function MedalsScreen({ medals, address, challenge, onClose, onEditAddres
   const insets = useSafeAreaInsets();
   const year = new Date().getFullYear();
 
-  const earned = medals.filter(
-    (m) => m.status === 'SHIPPED' || m.status === 'DELIVERED',
-  ).length;
+  const earned = medals.filter((m) => m.status === 'SHIPPED' || m.status === 'DELIVERED').length;
   const pending = medals.length - earned;
 
   const formattedAddress = formatAddress(address);
@@ -228,45 +230,71 @@ const s = StyleSheet.create({
     paddingVertical: 8,
   },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center', justifyContent: 'center',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   backBtnText: { color: colors.text, fontSize: 24, lineHeight: 30 },
 
   header: { paddingHorizontal: 20, paddingBottom: 4, paddingTop: 4 },
   kicker: { fontFamily: font.bodyBold, fontSize: 11, color: colors.brand, letterSpacing: 2 },
   title: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 44,
-    color: colors.text, lineHeight: 46, letterSpacing: 0.5, marginTop: 4,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 44,
+    color: colors.text,
+    lineHeight: 46,
+    letterSpacing: 0.5,
+    marginTop: 4,
   },
   subtitle: { fontFamily: font.body, fontSize: 13, color: colors.textDim, marginTop: 4 },
   subtitleBold: { fontFamily: font.bodyBold, color: colors.text },
 
   // Address card
   addressCard: {
-    flexDirection: 'row', alignItems: 'flex-start', gap: 12,
-    margin: 20, marginTop: 16,
-    padding: 14, borderRadius: 12,
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: 12,
+    margin: 20,
+    marginTop: 16,
+    padding: 14,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
   },
   addressIcon: {
-    width: 32, height: 32, borderRadius: 8,
+    width: 32,
+    height: 32,
+    borderRadius: 8,
     backgroundColor: 'rgba(95,184,168,0.12)',
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   addressLabel: {
-    fontFamily: font.bodyBold, fontSize: 11, color: colors.textMute, letterSpacing: 1.4,
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.textMute,
+    letterSpacing: 1.4,
   },
   addressText: {
-    fontFamily: font.body, fontSize: 13, color: colors.text, marginTop: 4, lineHeight: 18,
+    fontFamily: font.body,
+    fontSize: 13,
+    color: colors.text,
+    marginTop: 4,
+    lineHeight: 18,
   },
   addressEdit: { fontFamily: font.bodyBold, fontSize: 12, color: colors.brand },
 
   // Grid 2 colunas
   grid: {
-    flexDirection: 'row', flexWrap: 'wrap',
-    paddingHorizontal: 20, gap: 12,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 20,
+    gap: 12,
   },
 
   // Medal card
@@ -274,35 +302,51 @@ const s = StyleSheet.create({
     width: CARD_WIDTH,
     backgroundColor: colors.card,
     borderRadius: 14,
-    borderWidth: 1, borderColor: colors.line,
+    borderWidth: 1,
+    borderColor: colors.line,
     padding: 16,
-    alignItems: 'center', gap: 8,
+    alignItems: 'center',
+    gap: 8,
   },
   cardMonth: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 20, color: colors.text,
-    letterSpacing: 0.4, lineHeight: 22,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 20,
+    color: colors.text,
+    letterSpacing: 0.4,
+    lineHeight: 22,
   },
   cardGoal: { fontFamily: font.body, fontSize: 11, color: colors.textDim, fontWeight: '600' },
   cardStatus: {
-    fontFamily: font.bodyBold, fontSize: 10, letterSpacing: 1.2, textAlign: 'center',
+    fontFamily: font.bodyBold,
+    fontSize: 10,
+    letterSpacing: 1.2,
+    textAlign: 'center',
   },
 
   // Progress bar
   progressWrap: { width: '100%', gap: 4 },
   barTrack: {
-    height: 3, backgroundColor: 'rgba(255,255,255,0.07)',
-    borderRadius: 2, overflow: 'hidden',
+    height: 3,
+    backgroundColor: 'rgba(255,255,255,0.07)',
+    borderRadius: 2,
+    overflow: 'hidden',
   },
   barFill: { height: 3, backgroundColor: colors.brand, borderRadius: 2 },
   progressLabel: {
-    fontFamily: font.body, fontSize: 10, color: colors.textMute, textAlign: 'center',
+    fontFamily: font.body,
+    fontSize: 10,
+    color: colors.textMute,
+    textAlign: 'center',
   },
 
   // Empty
   empty: { alignItems: 'center', paddingVertical: 48, paddingHorizontal: 32, gap: 8 },
   emptyText: { fontFamily: font.bodyBold, fontSize: 14, color: colors.textMute },
   emptyHint: {
-    fontFamily: font.body, fontSize: 12, color: colors.textMute,
-    textAlign: 'center', lineHeight: 18,
+    fontFamily: font.body,
+    fontSize: 12,
+    color: colors.textMute,
+    textAlign: 'center',
+    lineHeight: 18,
   },
 });

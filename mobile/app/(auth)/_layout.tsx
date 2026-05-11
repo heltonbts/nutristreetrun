@@ -1,4 +1,5 @@
 import { Stack } from 'expo-router';
+
 import { colors } from '../../src/lib/tokens';
 
 export default function AuthLayout() {

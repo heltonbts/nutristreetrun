@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { api } from '../lib/api';
 import { colors, font } from '../lib/tokens';
 
@@ -51,7 +52,7 @@ export function AddressScreen({ initial, onClose }: Props) {
     setFetchingCep(true);
     try {
       const res = await fetch(`https://viacep.com.br/ws/${cep}/json/`);
-      const data = await res.json() as Record<string, string>;
+      const data = (await res.json()) as Record<string, string>;
       if (data.erro) {
         Alert.alert('CEP não encontrado');
         return;
@@ -68,7 +69,8 @@ export function AddressScreen({ initial, onClose }: Props) {
   }
 
   async function save() {
-    const missing = !zipCode || !street || !streetNumber || !neighborhood || !deliveryCity || !deliveryState;
+    const missing =
+      !zipCode || !street || !streetNumber || !neighborhood || !deliveryCity || !deliveryState;
     if (missing) {
       Alert.alert('Preencha todos os campos obrigatórios.');
       return;
@@ -101,9 +103,11 @@ export function AddressScreen({ initial, onClose }: Props) {
         </Pressable>
         <Text style={s.title}>ENDEREÇO</Text>
         <Pressable onPress={save} disabled={saving}>
-          {saving
-            ? <ActivityIndicator size={14} color={colors.brand} />
-            : <Text style={s.saveBtn}>Salvar</Text>}
+          {saving ? (
+            <ActivityIndicator size={14} color={colors.brand} />
+          ) : (
+            <Text style={s.saveBtn}>Salvar</Text>
+          )}
         </Pressable>
       </View>
 
@@ -128,22 +132,53 @@ export function AddressScreen({ initial, onClose }: Props) {
           </View>
         </View>
 
-        <Field label="Rua / Logradouro *" value={street} onChangeText={setStreet} autoCapitalize="words" />
+        <Field
+          label="Rua / Logradouro *"
+          value={street}
+          onChangeText={setStreet}
+          autoCapitalize="words"
+        />
         <View style={s.row}>
           <View style={{ flex: 1 }}>
-            <Field label="Número *" value={streetNumber} onChangeText={setStreetNumber} keyboardType="numeric" />
+            <Field
+              label="Número *"
+              value={streetNumber}
+              onChangeText={setStreetNumber}
+              keyboardType="numeric"
+            />
           </View>
           <View style={{ flex: 1 }}>
-            <Field label="Complemento" value={complement} onChangeText={setComplement} placeholder="Apto, bloco..." />
+            <Field
+              label="Complemento"
+              value={complement}
+              onChangeText={setComplement}
+              placeholder="Apto, bloco..."
+            />
           </View>
         </View>
-        <Field label="Bairro *" value={neighborhood} onChangeText={setNeighborhood} autoCapitalize="words" />
+        <Field
+          label="Bairro *"
+          value={neighborhood}
+          onChangeText={setNeighborhood}
+          autoCapitalize="words"
+        />
         <View style={s.row}>
           <View style={{ flex: 2 }}>
-            <Field label="Cidade *" value={deliveryCity} onChangeText={setDeliveryCity} autoCapitalize="words" />
+            <Field
+              label="Cidade *"
+              value={deliveryCity}
+              onChangeText={setDeliveryCity}
+              autoCapitalize="words"
+            />
           </View>
           <View style={{ flex: 1 }}>
-            <Field label="UF *" value={deliveryState} onChangeText={(v) => setDeliveryState(v.toUpperCase())} maxLength={2} autoCapitalize="characters" />
+            <Field
+              label="UF *"
+              value={deliveryState}
+              onChangeText={(v) => setDeliveryState(v.toUpperCase())}
+              maxLength={2}
+              autoCapitalize="characters"
+            />
           </View>
         </View>
       </ScrollView>
@@ -189,11 +224,20 @@ function Field({
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   topBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: colors.line,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
   },
-  title: { fontFamily: 'BebasNeue_400Regular', fontSize: 18, color: colors.text, letterSpacing: 0.5 },
+  title: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 18,
+    color: colors.text,
+    letterSpacing: 0.5,
+  },
   cancel: { fontFamily: font.body, fontSize: 15, color: colors.textMute },
   saveBtn: { fontFamily: font.bodyBold, fontSize: 15, color: colors.brand },
   body: { padding: 20, gap: 16 },
@@ -201,11 +245,22 @@ const s = StyleSheet.create({
   row: { flexDirection: 'row', gap: 12 },
   cepRow: { flexDirection: 'row', alignItems: 'center' },
   field: { gap: 6 },
-  label: { fontFamily: font.bodyBold, fontSize: 11, color: colors.textMute, letterSpacing: 1.2, textTransform: 'uppercase' },
+  label: {
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.textMute,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
   input: {
     backgroundColor: colors.card,
-    borderWidth: 1, borderColor: colors.line,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
-    fontFamily: font.body, fontSize: 15, color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: font.body,
+    fontSize: 15,
+    color: colors.text,
   },
 });

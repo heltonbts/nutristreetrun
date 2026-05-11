@@ -1,27 +1,30 @@
-import { useRouter } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { ChallengePickerScreen } from '../../src/screens/ChallengePickerScreen';
-import { ScreenTransition } from '../../src/components/ScreenTransition';
-import Svg, {
-  Circle,
-  Defs,
-  Path,
-  Polygon,
-  RadialGradient,
-  Rect,
-  Stop,
-} from 'react-native-svg';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import Svg, { Circle, Defs, Path, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
+
+import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
+import { ChallengePickerScreen } from '../../src/screens/ChallengePickerScreen';
 
 const W = Dimensions.get('window').width;
 
 const MONTHS = [
-  'JANEIRO','FEVEREIRO','MARÇO','ABRIL','MAIO','JUNHO',
-  'JULHO','AGOSTO','SETEMBRO','OUTUBRO','NOVEMBRO','DEZEMBRO',
+  'JANEIRO',
+  'FEVEREIRO',
+  'MARÇO',
+  'ABRIL',
+  'MAIO',
+  'JUNHO',
+  'JULHO',
+  'AGOSTO',
+  'SETEMBRO',
+  'OUTUBRO',
+  'NOVEMBRO',
+  'DEZEMBRO',
 ];
 
 function monthLabel() {
@@ -30,7 +33,9 @@ function monthLabel() {
 }
 
 function fmtDate(iso: string) {
-  return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' }).toUpperCase();
+  return new Date(iso)
+    .toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })
+    .toUpperCase();
 }
 
 function fmtSource(src: string) {
@@ -56,14 +61,34 @@ function Medal({ size = 88, label }: { size?: number; label: string }) {
   return (
     <View style={{ width: size, height: size }}>
       <Svg width={size} height={size} style={StyleSheet.absoluteFill}>
-        <Polygon points={hexPts} fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.22)" strokeWidth="1.5" />
+        <Polygon
+          points={hexPts}
+          fill="rgba(255,255,255,0.04)"
+          stroke="rgba(255,255,255,0.22)"
+          strokeWidth="1.5"
+        />
         <Polygon points={innerPts} fill="rgba(255,255,255,0.02)" />
       </Svg>
       <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-        <Text style={{ fontFamily: 'BebasNeue_400Regular', fontSize: size * 0.3, color: colors.text, lineHeight: size * 0.33 }}>
+        <Text
+          style={{
+            fontFamily: 'BebasNeue_400Regular',
+            fontSize: size * 0.3,
+            color: colors.text,
+            lineHeight: size * 0.33,
+          }}
+        >
           {label}
         </Text>
-        <Text style={{ fontFamily: font.bodyBold, fontSize: size * 0.09, color: 'rgba(255,255,255,0.4)', letterSpacing: 1.2, marginTop: 2 }}>
+        <Text
+          style={{
+            fontFamily: font.bodyBold,
+            fontSize: size * 0.09,
+            color: 'rgba(255,255,255,0.4)',
+            letterSpacing: 1.2,
+            marginTop: 2,
+          }}
+        >
           NSR
         </Text>
       </View>
@@ -71,8 +96,16 @@ function Medal({ size = 88, label }: { size?: number; label: string }) {
   );
 }
 
-function SectionHeader({ kicker, title, action, onAction }: {
-  kicker: string; title: string; action?: string; onAction?: () => void;
+function SectionHeader({
+  kicker,
+  title,
+  action,
+  onAction,
+}: {
+  kicker: string;
+  title: string;
+  action?: string;
+  onAction?: () => void;
 }) {
   return (
     <View style={sh.row}>
@@ -106,7 +139,14 @@ function RunIcon({ color }: { color: string }) {
 
 interface HomeData {
   userName: string;
-  challenge: { id: string; title: string; goalKm: number; doneKm: number; pct: number; daysLeft: number } | null;
+  challenge: {
+    id: string;
+    title: string;
+    goalKm: number;
+    doneKm: number;
+    pct: number;
+    daysLeft: number;
+  } | null;
   ranking: { pos: number; aheadKm: number; total: number } | null;
   recentActivities: {
     id: string;
@@ -187,23 +227,38 @@ export default function HomeScreen() {
               {'ESCOLHA\nSEU\nDESAFIO.'}
             </Text>
             <Text style={[s.challengeSub, { marginTop: 14, maxWidth: 280 }]}>
-              Você ainda não entrou no desafio de {monthLabel().toLowerCase()}. Escolha sua meta de km. Só uma medalha por mês.
+              Você ainda não entrou no desafio de {monthLabel().toLowerCase()}. Escolha sua meta de
+              km. Só uma medalha por mês.
             </Text>
 
             <Pressable style={s.pickBtn} onPress={() => setShowPicker(true)}>
-              <Text style={s.pickBtnText}>ESCOLHER DESAFIO  →</Text>
+              <Text style={s.pickBtnText}>ESCOLHER DESAFIO →</Text>
             </Pressable>
-            <Text style={s.pickHint}>Inscrição inclusa no plano · termina em {c?.daysLeft ?? data?.challenge?.daysLeft ?? 26} dias</Text>
+            <Text style={s.pickHint}>
+              Inscrição inclusa no plano · termina em {data?.challenge?.daysLeft ?? 26} dias
+            </Text>
           </View>
 
           {/* Preview horizontal das metas */}
           <View style={s.section}>
             <Text style={s.sectionMiniLabel}>METAS DISPONÍVEIS</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingRight: 20 }}>
+            <ScrollView
+              horizontal
+              showsHorizontalScrollIndicator={false}
+              contentContainerStyle={{ gap: 8, paddingRight: 20 }}
+            >
               {[30, 60, 100, 150].map((km) => (
                 <Pressable key={km} style={s.previewCard} onPress={() => setShowPicker(true)}>
                   <Text style={s.previewKm}>{km}K</Text>
-                  <Text style={s.previewPace}>{km === 30 ? 'INICIANTE' : km === 60 ? 'MÉDIO' : km === 100 ? 'AVANÇADO' : 'ELITE'}</Text>
+                  <Text style={s.previewPace}>
+                    {km === 30
+                      ? 'INICIANTE'
+                      : km === 60
+                        ? 'MÉDIO'
+                        : km === 100
+                          ? 'AVANÇADO'
+                          : 'ELITE'}
+                  </Text>
                 </Pressable>
               ))}
             </ScrollView>
@@ -212,18 +267,39 @@ export default function HomeScreen() {
           {/* Atividades recentes mesmo sem desafio */}
           {(data?.recentActivities ?? []).length > 0 && (
             <View style={s.section}>
-              <SectionHeader kicker="ÚLTIMA SEMANA" title="ATIVIDADES" action="Ver corridas →" onAction={() => router.push('/(tabs)/runs')} />
+              <SectionHeader
+                kicker="ÚLTIMA SEMANA"
+                title="ATIVIDADES"
+                action="Ver corridas →"
+                onAction={() => router.push('/(tabs)/runs')}
+              />
               <View style={{ gap: 8 }}>
                 {data?.recentActivities.map((a) => (
                   <View key={a.id} style={s.actRow}>
-                    <View style={[s.actIcon, { backgroundColor: a.counts ? 'rgba(95,184,168,0.12)' : 'rgba(255,255,255,0.04)', borderColor: a.counts ? 'rgba(95,184,168,0.28)' : colors.line }]}>
+                    <View
+                      style={[
+                        s.actIcon,
+                        {
+                          backgroundColor: a.counts
+                            ? 'rgba(95,184,168,0.12)'
+                            : 'rgba(255,255,255,0.04)',
+                          borderColor: a.counts ? 'rgba(95,184,168,0.28)' : colors.line,
+                        },
+                      ]}
+                    >
                       <RunIcon color={a.counts ? colors.brand : colors.textMute} />
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={s.actTitle} numberOfLines={1}>{a.title}</Text>
-                      <Text style={s.actMeta}>{fmtDate(a.startedAt)} · {fmtSource(a.source)}</Text>
+                      <Text style={s.actTitle} numberOfLines={1}>
+                        {a.title}
+                      </Text>
+                      <Text style={s.actMeta}>
+                        {fmtDate(a.startedAt)} · {fmtSource(a.source)}
+                      </Text>
                     </View>
-                    <Text style={s.actKm}>{a.distanceKm.toFixed(1)} <Text style={s.actKmUnit}>km</Text></Text>
+                    <Text style={s.actKm}>
+                      {a.distanceKm.toFixed(1)} <Text style={s.actKmUnit}>km</Text>
+                    </Text>
                   </View>
                 ))}
               </View>
@@ -236,118 +312,140 @@ export default function HomeScreen() {
 
   return (
     <ScreenTransition>
-    <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 32 }}>
+        {/* ── HERO BANNER ── */}
+        <View style={[s.hero, { paddingTop: insets.top + 16 }]}>
+          {/* Radial gradient background */}
+          <Svg width={W} height={260} style={StyleSheet.absoluteFill} pointerEvents="none">
+            <Defs>
+              <RadialGradient id="rg" cx="90%" cy="0%" r="65%">
+                <Stop offset="0%" stopColor="#5FB8A8" stopOpacity="0.22" />
+                <Stop offset="100%" stopColor="#5FB8A8" stopOpacity="0" />
+              </RadialGradient>
+            </Defs>
+            <Rect width={W} height={260} fill="url(#rg)" />
+          </Svg>
 
-      {/* ── HERO BANNER ── */}
-      <View style={[s.hero, { paddingTop: insets.top + 16 }]}>
-        {/* Radial gradient background */}
-        <Svg width={W} height={260} style={StyleSheet.absoluteFill} pointerEvents="none">
-          <Defs>
-            <RadialGradient id="rg" cx="90%" cy="0%" r="65%">
-              <Stop offset="0%" stopColor="#5FB8A8" stopOpacity="0.22" />
-              <Stop offset="100%" stopColor="#5FB8A8" stopOpacity="0" />
-            </RadialGradient>
-          </Defs>
-          <Rect width={W} height={260} fill="url(#rg)" />
-        </Svg>
-
-        {/* Sync chip + month */}
-        <View style={s.heroTop}>
-          <View style={s.syncChip}>
-            <View style={s.syncDot} />
-            <Text style={s.syncText}>STRAVA · HEALTH SYNC</Text>
-          </View>
-          <Text style={s.monthLabel}>{monthLabel()}</Text>
-        </View>
-
-        {/* Title row */}
-        <View style={s.titleRow}>
-          <View style={{ flex: 1, paddingRight: 12 }}>
-            <Text style={s.kicker}>DESAFIO ATIVO</Text>
-            <Text style={s.challengeTitle}>{c?.title ?? '—'}</Text>
-            <Text style={s.challengeSub}>Complete {c?.goalKm} km para ganhar sua medalha</Text>
-          </View>
-          <Medal size={88} label={goalLabel} />
-        </View>
-
-        {/* Progress */}
-        <View style={s.progressBlock}>
-          <View style={s.progressRow}>
-            <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
-              <Text style={s.kmDone}>{c?.doneKm.toFixed(1)}</Text>
-              <Text style={s.kmOf}>/ {c?.goalKm} km</Text>
+          {/* Sync chip + month */}
+          <View style={s.heroTop}>
+            <View style={s.syncChip}>
+              <View style={s.syncDot} />
+              <Text style={s.syncText}>STRAVA · HEALTH SYNC</Text>
             </View>
-            <Text style={s.pctLabel}>{c?.pct}% COMPLETO</Text>
+            <Text style={s.monthLabel}>{monthLabel()}</Text>
           </View>
-          <View style={s.barBg}>
-            <View style={[s.barFill, { width: `${c?.pct ?? 0}%` }]} />
-          </View>
-          <View style={s.progressFooter}>
-            <Text style={s.muted}>Faltam <Text style={s.textWhite}>{((c?.goalKm ?? 0) - (c?.doneKm ?? 0)).toFixed(1)} km</Text></Text>
-            <Text style={s.muted}><Text style={s.textBrand}>{c?.daysLeft} dias</Text> restantes</Text>
-          </View>
-        </View>
-      </View>
 
-      {/* ── RANKING ── */}
-      {r && r.total > 0 && (
-        <View style={s.section}>
-          <SectionHeader
-            kicker="SUA POSIÇÃO"
-            title="RANKING"
-            action="Ver tudo →"
-            onAction={() => router.push('/(tabs)/ranking')}
-          />
-          <View style={s.card}>
-            <Text style={s.rankPos}>#{r.pos}</Text>
-            <View style={{ flex: 1 }}>
-              <Text style={s.rankLabel}>Você está em {r.pos}º lugar</Text>
+          {/* Title row */}
+          <View style={s.titleRow}>
+            <View style={{ flex: 1, paddingRight: 12 }}>
+              <Text style={s.kicker}>DESAFIO ATIVO</Text>
+              <Text style={s.challengeTitle}>{c?.title ?? '—'}</Text>
+              <Text style={s.challengeSub}>Complete {c?.goalKm} km para ganhar sua medalha</Text>
+            </View>
+            <Medal size={88} label={goalLabel} />
+          </View>
+
+          {/* Progress */}
+          <View style={s.progressBlock}>
+            <View style={s.progressRow}>
+              <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6 }}>
+                <Text style={s.kmDone}>{c?.doneKm.toFixed(1)}</Text>
+                <Text style={s.kmOf}>/ {c?.goalKm} km</Text>
+              </View>
+              <Text style={s.pctLabel}>{c?.pct}% COMPLETO</Text>
+            </View>
+            <View style={s.barBg}>
+              <View style={[s.barFill, { width: `${c?.pct ?? 0}%` }]} />
+            </View>
+            <View style={s.progressFooter}>
               <Text style={s.muted}>
-                {r.aheadKm > 0
-                  ? `${r.aheadKm} km para o ${r.pos - 1}º lugar`
-                  : `Líder entre ${r.total} participantes`}
+                Faltam{' '}
+                <Text style={s.textWhite}>
+                  {((c?.goalKm ?? 0) - (c?.doneKm ?? 0)).toFixed(1)} km
+                </Text>
+              </Text>
+              <Text style={s.muted}>
+                <Text style={s.textBrand}>{c?.daysLeft} dias</Text> restantes
               </Text>
             </View>
           </View>
         </View>
-      )}
 
-      {/* ── ATIVIDADES ── */}
-      {(data?.recentActivities ?? []).length > 0 && (
-        <View style={s.section}>
-          <SectionHeader
-            kicker="ÚLTIMA SEMANA"
-            title="ATIVIDADES"
-            action="Ver corridas →"
-            onAction={() => router.push('/(tabs)/runs')}
-          />
-          <View style={{ gap: 8 }}>
-            {data?.recentActivities.map((a) => (
-              <View key={a.id} style={s.actRow}>
-                <View style={[s.actIcon, { backgroundColor: a.counts ? 'rgba(95,184,168,0.12)' : 'rgba(255,255,255,0.04)', borderColor: a.counts ? 'rgba(95,184,168,0.28)' : colors.line }]}>
-                  <RunIcon color={a.counts ? colors.brand : colors.textMute} />
-                </View>
-                <View style={{ flex: 1, minWidth: 0 }}>
-                  <Text style={s.actTitle} numberOfLines={1}>{a.title}</Text>
-                  <Text style={s.actMeta}>
-                    {fmtDate(a.startedAt)} · {fmtSource(a.source)}
-                    {!a.counts && a.skipReason
-                      ? <Text style={{ color: colors.danger }}> · {a.skipReason}</Text>
-                      : null}
-                  </Text>
-                </View>
-                <View style={{ alignItems: 'flex-end' }}>
-                  <Text style={s.actKm}>{a.distanceKm.toFixed(1)} <Text style={s.actKmUnit}>km</Text></Text>
-                  <Text style={[s.actCounts, { color: a.counts ? colors.brand : colors.textMute }]}>
-                    {a.counts ? '✓ CONTA' : 'NÃO CONTA'}
-                  </Text>
-                </View>
+        {/* ── RANKING ── */}
+        {r && r.total > 0 && (
+          <View style={s.section}>
+            <SectionHeader
+              kicker="SUA POSIÇÃO"
+              title="RANKING"
+              action="Ver tudo →"
+              onAction={() => router.push('/(tabs)/ranking')}
+            />
+            <View style={s.card}>
+              <Text style={s.rankPos}>#{r.pos}</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={s.rankLabel}>Você está em {r.pos}º lugar</Text>
+                <Text style={s.muted}>
+                  {r.aheadKm > 0
+                    ? `${r.aheadKm} km para o ${r.pos - 1}º lugar`
+                    : `Líder entre ${r.total} participantes`}
+                </Text>
               </View>
-            ))}
+            </View>
           </View>
-        </View>
-      )}
-    </ScrollView>
+        )}
+
+        {/* ── ATIVIDADES ── */}
+        {(data?.recentActivities ?? []).length > 0 && (
+          <View style={s.section}>
+            <SectionHeader
+              kicker="ÚLTIMA SEMANA"
+              title="ATIVIDADES"
+              action="Ver corridas →"
+              onAction={() => router.push('/(tabs)/runs')}
+            />
+            <View style={{ gap: 8 }}>
+              {data?.recentActivities.map((a) => (
+                <View key={a.id} style={s.actRow}>
+                  <View
+                    style={[
+                      s.actIcon,
+                      {
+                        backgroundColor: a.counts
+                          ? 'rgba(95,184,168,0.12)'
+                          : 'rgba(255,255,255,0.04)',
+                        borderColor: a.counts ? 'rgba(95,184,168,0.28)' : colors.line,
+                      },
+                    ]}
+                  >
+                    <RunIcon color={a.counts ? colors.brand : colors.textMute} />
+                  </View>
+                  <View style={{ flex: 1, minWidth: 0 }}>
+                    <Text style={s.actTitle} numberOfLines={1}>
+                      {a.title}
+                    </Text>
+                    <Text style={s.actMeta}>
+                      {fmtDate(a.startedAt)} · {fmtSource(a.source)}
+                      {!a.counts && a.skipReason ? (
+                        <Text style={{ color: colors.danger }}> · {a.skipReason}</Text>
+                      ) : null}
+                    </Text>
+                  </View>
+                  <View style={{ alignItems: 'flex-end' }}>
+                    <Text style={s.actKm}>
+                      {a.distanceKm.toFixed(1)} <Text style={s.actKmUnit}>km</Text>
+                    </Text>
+                    <Text
+                      style={[s.actCounts, { color: a.counts ? colors.brand : colors.textMute }]}
+                    >
+                      {a.counts ? '✓ CONTA' : 'NÃO CONTA'}
+                    </Text>
+                  </View>
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+      </ScrollView>
     </ScreenTransition>
   );
 }
@@ -388,10 +486,21 @@ const s = StyleSheet.create({
     backgroundColor: '#4ADE80',
   },
   syncText: { fontFamily: font.bodyBold, fontSize: 10, color: colors.textDim, letterSpacing: 1.2 },
-  monthLabel: { fontFamily: font.bodyBold, fontSize: 11, color: colors.textMute, letterSpacing: 1.4 },
+  monthLabel: {
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.textMute,
+    letterSpacing: 1.4,
+  },
 
   titleRow: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 24 },
-  kicker: { fontFamily: font.bodyBold, fontSize: 11, color: colors.brand, letterSpacing: 2, marginBottom: 6 },
+  kicker: {
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.brand,
+    letterSpacing: 2,
+    marginBottom: 6,
+  },
   challengeTitle: {
     fontFamily: 'BebasNeue_400Regular',
     fontSize: 52,
@@ -399,14 +508,30 @@ const s = StyleSheet.create({
     color: colors.text,
     letterSpacing: 1,
   },
-  challengeSub: { fontFamily: font.body, fontSize: 13, color: colors.textDim, marginTop: 8, lineHeight: 18 },
+  challengeSub: {
+    fontFamily: font.body,
+    fontSize: 13,
+    color: colors.textDim,
+    marginTop: 8,
+    lineHeight: 18,
+  },
 
   progressBlock: { marginTop: 4 },
-  progressRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'baseline', marginBottom: 8 },
+  progressRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'baseline',
+    marginBottom: 8,
+  },
   kmDone: { fontFamily: 'BebasNeue_400Regular', fontSize: 38, color: colors.text, lineHeight: 38 },
   kmOf: { fontFamily: font.body, fontSize: 14, color: colors.textDim },
   pctLabel: { fontFamily: font.bodyBold, fontSize: 12, color: colors.brand, letterSpacing: 1 },
-  barBg: { height: 8, backgroundColor: 'rgba(255,255,255,0.08)', borderRadius: 999, overflow: 'hidden' },
+  barBg: {
+    height: 8,
+    backgroundColor: 'rgba(255,255,255,0.08)',
+    borderRadius: 999,
+    overflow: 'hidden',
+  },
   barFill: { height: '100%', backgroundColor: colors.brand, borderRadius: 999 },
   progressFooter: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 12 },
 
@@ -417,38 +542,76 @@ const s = StyleSheet.create({
 
   // Empty state
   medalPlaceholder: {
-    position: 'absolute', top: 56, right: 16,
-    width: 110, height: 110, borderRadius: 55,
-    borderWidth: 2, borderColor: colors.lineHi, borderStyle: 'dashed',
-    alignItems: 'center', justifyContent: 'center', opacity: 0.6,
+    position: 'absolute',
+    top: 56,
+    right: 16,
+    width: 110,
+    height: 110,
+    borderRadius: 55,
+    borderWidth: 2,
+    borderColor: colors.lineHi,
+    borderStyle: 'dashed',
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.6,
   },
   medalPlaceholderText: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 28, color: colors.textMute, letterSpacing: 2,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 28,
+    color: colors.textMute,
+    letterSpacing: 2,
   },
   pickBtn: {
-    backgroundColor: colors.brand, borderRadius: 14,
-    paddingVertical: 16, alignItems: 'center', justifyContent: 'center',
+    backgroundColor: colors.brand,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
     marginTop: 24,
   },
   pickBtnText: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 22, color: colors.brandInk, letterSpacing: 1,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    color: colors.brandInk,
+    letterSpacing: 1,
   },
   pickHint: {
-    fontFamily: font.body, fontSize: 11, color: colors.textMute,
-    textAlign: 'center', marginTop: 12, letterSpacing: 0.4,
+    fontFamily: font.body,
+    fontSize: 11,
+    color: colors.textMute,
+    textAlign: 'center',
+    marginTop: 12,
+    letterSpacing: 0.4,
   },
   sectionMiniLabel: {
-    fontFamily: font.bodyBold, fontSize: 11, color: colors.textMute, letterSpacing: 1.6, marginBottom: 14,
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.textMute,
+    letterSpacing: 1.6,
+    marginBottom: 14,
   },
   previewCard: {
-    paddingHorizontal: 14, paddingVertical: 12, borderRadius: 12,
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, minWidth: 110,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderRadius: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    minWidth: 110,
   },
   previewKm: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 28, color: colors.text, lineHeight: 30, letterSpacing: 0.4,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 28,
+    color: colors.text,
+    lineHeight: 30,
+    letterSpacing: 0.4,
   },
   previewPace: {
-    fontFamily: font.bodyBold, fontSize: 10, color: colors.textMute, marginTop: 6, letterSpacing: 0.8,
+    fontFamily: font.bodyBold,
+    fontSize: 10,
+    color: colors.textMute,
+    marginTop: 6,
+    letterSpacing: 0.8,
   },
 
   // Sections
@@ -456,20 +619,37 @@ const s = StyleSheet.create({
 
   // Ranking card
   card: {
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
-    borderRadius: 14, padding: 16, flexDirection: 'row', alignItems: 'center', gap: 14,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 14,
+    padding: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
   },
   rankPos: { fontFamily: 'BebasNeue_400Regular', fontSize: 44, color: colors.brand },
   rankLabel: { fontFamily: font.bodyBold, fontSize: 14, color: colors.text },
 
   // Activity rows
   actRow: {
-    backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line,
-    borderRadius: 12, padding: 12, flexDirection: 'row', alignItems: 'center', gap: 12,
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    padding: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
   },
   actIcon: {
-    width: 38, height: 38, borderRadius: 10, borderWidth: 1,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    width: 38,
+    height: 38,
+    borderRadius: 10,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   actTitle: { fontFamily: font.bodyBold, fontSize: 13, color: colors.text },
   actMeta: { fontFamily: font.body, fontSize: 11, color: colors.textMute, marginTop: 2 },
@@ -479,8 +659,19 @@ const s = StyleSheet.create({
 });
 
 const sh = StyleSheet.create({
-  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 14 },
-  kicker: { fontFamily: font.bodyBold, fontSize: 11, color: colors.brand, letterSpacing: 1.6, marginBottom: 4 },
+  row: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    marginBottom: 14,
+  },
+  kicker: {
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.brand,
+    letterSpacing: 1.6,
+    marginBottom: 4,
+  },
   title: { fontFamily: 'BebasNeue_400Regular', fontSize: 26, color: colors.text },
   action: { fontFamily: font.bodyBold, fontSize: 12, color: colors.brand, letterSpacing: 0.4 },
 });

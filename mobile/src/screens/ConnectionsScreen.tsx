@@ -12,6 +12,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { api } from '../lib/api';
 import { colors, font } from '../lib/tokens';
 
@@ -28,9 +29,24 @@ interface AppConnection {
 }
 
 const APPS: AppConnection[] = [
-  { id: 'strava', name: 'Strava', description: 'Importa corridas automaticamente', available: true },
-  { id: 'apple_health', name: 'Apple Health', description: 'Disponível na versão completa', available: false },
-  { id: 'google_fit', name: 'Google Fit', description: 'Disponível na versão completa', available: false },
+  {
+    id: 'strava',
+    name: 'Strava',
+    description: 'Importa corridas automaticamente',
+    available: true,
+  },
+  {
+    id: 'apple_health',
+    name: 'Apple Health',
+    description: 'Disponível na versão completa',
+    available: false,
+  },
+  {
+    id: 'google_fit',
+    name: 'Google Fit',
+    description: 'Disponível na versão completa',
+    available: false,
+  },
 ];
 
 function StravaIcon() {
@@ -145,14 +161,12 @@ export function ConnectionsScreen({ strava, onClose }: Props) {
                     <View style={s.dot} />
                     <Text style={s.pillConnectedText}>Conectado</Text>
                   </View>
-                  <Pressable
-                    style={s.syncBtn}
-                    onPress={syncStrava}
-                    disabled={loadingId !== null}
-                  >
-                    {loadingId === 'strava-sync'
-                      ? <ActivityIndicator size={11} color={colors.brandInk} />
-                      : <Text style={s.syncBtnText}>SINCRONIZAR</Text>}
+                  <Pressable style={s.syncBtn} onPress={syncStrava} disabled={loadingId !== null}>
+                    {loadingId === 'strava-sync' ? (
+                      <ActivityIndicator size={11} color={colors.brandInk} />
+                    ) : (
+                      <Text style={s.syncBtnText}>SINCRONIZAR</Text>
+                    )}
                   </Pressable>
                 </View>
               ) : (
@@ -161,9 +175,11 @@ export function ConnectionsScreen({ strava, onClose }: Props) {
                   onPress={connectStrava}
                   disabled={loadingId !== null}
                 >
-                  {loadingId === 'strava-connect'
-                    ? <ActivityIndicator size={13} color={colors.brand} />
-                    : <Text style={s.connectBtnText}>CONECTAR</Text>}
+                  {loadingId === 'strava-connect' ? (
+                    <ActivityIndicator size={13} color={colors.brand} />
+                  ) : (
+                    <Text style={s.connectBtnText}>CONECTAR</Text>
+                  )}
                 </Pressable>
               )}
             </View>
@@ -177,25 +193,42 @@ export function ConnectionsScreen({ strava, onClose }: Props) {
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   topBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: colors.line,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
   },
-  title: { fontFamily: 'BebasNeue_400Regular', fontSize: 18, color: colors.text, letterSpacing: 0.5 },
+  title: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 18,
+    color: colors.text,
+    letterSpacing: 0.5,
+  },
   cancel: { fontFamily: font.body, fontSize: 15, color: colors.textMute, width: 48 },
 
   body: { padding: 20, gap: 12 },
   hint: { fontFamily: font.body, fontSize: 13, color: colors.textMute, marginBottom: 8 },
 
   appRow: {
-    flexDirection: 'row', alignItems: 'center', gap: 14,
-    backgroundColor: colors.card, borderRadius: 14,
-    borderWidth: 1, borderColor: colors.line,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
     padding: 16,
   },
   appIcon: {
-    width: 44, height: 44, borderRadius: 12,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   appIconText: { fontFamily: font.bodyBold, fontSize: 18, color: '#fff' },
   appInfo: { flex: 1, gap: 3 },
@@ -204,31 +237,60 @@ const s = StyleSheet.create({
 
   connectedCol: { alignItems: 'flex-end', gap: 6 },
   pillConnected: {
-    flexDirection: 'row', alignItems: 'center', gap: 5,
-    backgroundColor: 'rgba(61,220,132,0.12)', borderRadius: 999,
-    paddingHorizontal: 10, paddingVertical: 4,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(61,220,132,0.12)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
   dot: { width: 6, height: 6, borderRadius: 3, backgroundColor: colors.success },
   pillConnectedText: { fontFamily: font.bodyBold, fontSize: 10, color: colors.success },
 
   syncBtn: {
-    backgroundColor: colors.brand, borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 6,
-    minWidth: 40, alignItems: 'center',
+    backgroundColor: colors.brand,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    minWidth: 40,
+    alignItems: 'center',
   },
-  syncBtnText: { fontFamily: font.bodyBold, fontSize: 10, color: colors.brandInk, letterSpacing: 0.8 },
+  syncBtnText: {
+    fontFamily: font.bodyBold,
+    fontSize: 10,
+    color: colors.brandInk,
+    letterSpacing: 0.8,
+  },
 
   connectBtn: {
-    borderWidth: 1, borderColor: colors.brand, borderRadius: 8,
-    paddingHorizontal: 12, paddingVertical: 8,
-    minWidth: 40, alignItems: 'center',
+    borderWidth: 1,
+    borderColor: colors.brand,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    minWidth: 40,
+    alignItems: 'center',
   },
-  connectBtnText: { fontFamily: font.bodyBold, fontSize: 11, color: colors.brand, letterSpacing: 0.8 },
+  connectBtnText: {
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.brand,
+    letterSpacing: 0.8,
+  },
 
   pillSoon: {
-    backgroundColor: colors.card, borderRadius: 999,
-    borderWidth: 1, borderColor: colors.line,
-    paddingHorizontal: 10, paddingVertical: 4,
+    backgroundColor: colors.card,
+    borderRadius: 999,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingHorizontal: 10,
+    paddingVertical: 4,
   },
-  pillSoonText: { fontFamily: font.bodyBold, fontSize: 10, color: colors.textMute, letterSpacing: 0.8 },
+  pillSoonText: {
+    fontFamily: font.bodyBold,
+    fontSize: 10,
+    color: colors.textMute,
+    letterSpacing: 0.8,
+  },
 });

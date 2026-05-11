@@ -1,6 +1,7 @@
 {
   "name": "nutristreetrun",
   "private": true,
+  "type": "module",
   "workspaces": [
     "backend",
     "mobile"
@@ -9,16 +10,25 @@
     "prepare": "husky"
   },
   "devDependencies": {
+    "@commitlint/cli": "^21.0.0",
+    "@commitlint/config-conventional": "^21.0.0",
     "husky": "^9.1.7",
-    "lint-staged": "^15.3.0"
+    "lint-staged": "^15.3.0",
+    "prettier": "^3.5.3"
   },
   "lint-staged": {
-    "backend/**/*.{ts,json}": [
-      "npm run lint --prefix backend",
-      "npm run format --prefix backend"
+    "backend/**/*.ts": [
+      "bash -c 'cd backend && npx eslint \"{src,apps,libs,test}/**/*.ts\" --fix'",
+      "bash -c 'cd backend && npx prettier --write --ignore-unknown .'",
+      "bash -c 'cd backend && npx tsc --noEmit'"
     ],
-    "mobile/**/*.{ts,tsx,json}": [
-      "npm run lint --prefix mobile"
+    "mobile/**/*.{ts,tsx}": [
+      "bash -c 'cd mobile && npx eslint . --fix'",
+      "npx prettier --write",
+      "bash -c 'cd mobile && npx tsc --noEmit'"
+    ],
+    "mobile/**/*.json": [
+      "npx prettier --write"
     ]
   }
 }

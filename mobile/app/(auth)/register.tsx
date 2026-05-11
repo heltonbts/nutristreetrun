@@ -1,8 +1,9 @@
+import axios from 'axios';
 import { Link } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
-  Alert,
   ActivityIndicator,
+  Alert,
   Animated,
   KeyboardAvoidingView,
   Linking,
@@ -15,10 +16,10 @@ import {
   View,
 } from 'react-native';
 import PhoneInput from 'react-native-phone-number-input';
-import axios from 'axios';
-import { useAuthStore } from '../../src/store/auth.store';
+
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
+import { useAuthStore } from '../../src/store/auth.store';
 
 function AnimatedButton({
   onPress,
@@ -44,20 +45,32 @@ function AnimatedButton({
         onPressOut={pressOut}
         onPress={onPress}
       >
-        {loading
-          ? <ActivityIndicator color={colors.brandInk} />
-          : <Text style={s.btnText}>{label}</Text>
-        }
+        {loading ? (
+          <ActivityIndicator color={colors.brandInk} />
+        ) : (
+          <Text style={s.btnText}>{label}</Text>
+        )}
       </Pressable>
     </Animated.View>
   );
 }
 
 function AppCard({
-  color, name, desc, onPress, actionLabel, disabled, loading,
+  color,
+  name,
+  desc,
+  onPress,
+  actionLabel,
+  disabled,
+  loading,
 }: {
-  color: string; name: string; desc: string;
-  onPress?: () => void; actionLabel?: string; disabled?: boolean; loading?: boolean;
+  color: string;
+  name: string;
+  desc: string;
+  onPress?: () => void;
+  actionLabel?: string;
+  disabled?: boolean;
+  loading?: boolean;
 }) {
   return (
     <View style={[ac.card, disabled && ac.cardDisabled]}>
@@ -70,10 +83,11 @@ function AppCard({
       </View>
       {!disabled && onPress && (
         <Pressable style={ac.action} onPress={onPress} disabled={loading}>
-          {loading
-            ? <ActivityIndicator size="small" color={colors.brand} />
-            : <Text style={ac.actionText}>{actionLabel}</Text>
-          }
+          {loading ? (
+            <ActivityIndicator size="small" color={colors.brand} />
+          ) : (
+            <Text style={ac.actionText}>{actionLabel}</Text>
+          )}
         </Pressable>
       )}
       {disabled && (
@@ -160,8 +174,8 @@ export default function RegisterScreen() {
         atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))
           .split('')
           .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
-          .join('')
-      )
+          .join(''),
+      ),
     ) as { sub: string };
     const apiBase = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
     const params = new URLSearchParams({
@@ -199,7 +213,6 @@ export default function RegisterScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <ScrollView contentContainerStyle={s.container} keyboardShouldPersistTaps="handled">
-
         {/* ── STEP 1: DADOS ── */}
         {step === 1 && (
           <>
@@ -208,9 +221,33 @@ export default function RegisterScreen() {
               <Text style={s.title}>NUTRISTREET{'\n'}RUN</Text>
             </View>
             <View style={s.form}>
-              <TextInput style={s.input} placeholder="Nome completo" placeholderTextColor={colors.textMute} value={name} onChangeText={setName} />
-              <TextInput style={s.input} placeholder="E-mail" placeholderTextColor={colors.textMute} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} value={email} onChangeText={setEmail} />
-              <TextInput style={s.input} placeholder="Confirmar e-mail" placeholderTextColor={colors.textMute} keyboardType="email-address" autoCapitalize="none" autoCorrect={false} value={confirmEmail} onChangeText={setConfirmEmail} />
+              <TextInput
+                style={s.input}
+                placeholder="Nome completo"
+                placeholderTextColor={colors.textMute}
+                value={name}
+                onChangeText={setName}
+              />
+              <TextInput
+                style={s.input}
+                placeholder="E-mail"
+                placeholderTextColor={colors.textMute}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={email}
+                onChangeText={setEmail}
+              />
+              <TextInput
+                style={s.input}
+                placeholder="Confirmar e-mail"
+                placeholderTextColor={colors.textMute}
+                keyboardType="email-address"
+                autoCapitalize="none"
+                autoCorrect={false}
+                value={confirmEmail}
+                onChangeText={setConfirmEmail}
+              />
               <PhoneInput
                 ref={phoneRef}
                 defaultCode="BR"
@@ -226,13 +263,34 @@ export default function RegisterScreen() {
                 countryPickerButtonStyle={s.phoneFlag}
                 countryPickerProps={{ withEmoji: true, withFilter: true, withFlag: true }}
               />
-              <TextInput style={s.input} placeholder="Senha (mín. 6 caracteres)" placeholderTextColor={colors.textMute} secureTextEntry value={password} onChangeText={setPassword} />
-              <TextInput style={s.input} placeholder="Confirmar senha" placeholderTextColor={colors.textMute} secureTextEntry value={confirmPassword} onChangeText={setConfirmPassword} />
+              <TextInput
+                style={s.input}
+                placeholder="Senha (mín. 6 caracteres)"
+                placeholderTextColor={colors.textMute}
+                secureTextEntry
+                value={password}
+                onChangeText={setPassword}
+              />
+              <TextInput
+                style={s.input}
+                placeholder="Confirmar senha"
+                placeholderTextColor={colors.textMute}
+                secureTextEntry
+                value={confirmPassword}
+                onChangeText={setConfirmPassword}
+              />
               {error ? <Text style={s.error}>{error}</Text> : null}
-              <AnimatedButton onPress={handleContinue} disabled={false} loading={false} label="CONTINUAR" />
+              <AnimatedButton
+                onPress={handleContinue}
+                disabled={false}
+                loading={false}
+                label="CONTINUAR"
+              />
               <Link href="/(auth)/login" asChild>
                 <Pressable style={s.linkBtn}>
-                  <Text style={s.link}>Já tem conta? <Text style={{ color: colors.brand }}>Entrar</Text></Text>
+                  <Text style={s.link}>
+                    Já tem conta? <Text style={{ color: colors.brand }}>Entrar</Text>
+                  </Text>
                 </Pressable>
               </Link>
             </View>
@@ -243,12 +301,21 @@ export default function RegisterScreen() {
         {step === 2 && (
           <>
             <View style={s.header}>
-              <Pressable onPress={() => { setError(''); setStep(1); }} style={s.backBtn} hitSlop={12}>
+              <Pressable
+                onPress={() => {
+                  setError('');
+                  setStep(1);
+                }}
+                style={s.backBtn}
+                hitSlop={12}
+              >
                 <Text style={s.backText}>← Voltar</Text>
               </Pressable>
               <Text style={s.kicker}>PASSO 2 DE 3</Text>
               <Text style={s.title2}>SUA{'\n'}ASSESSORIA</Text>
-              <Text style={s.subtitle}>Pertence a uma assessoria de corrida?{'\n'}Inclua-a no ranking gratuitamente.</Text>
+              <Text style={s.subtitle}>
+                Pertence a uma assessoria de corrida?{'\n'}Inclua-a no ranking gratuitamente.
+              </Text>
             </View>
             <View style={s.form}>
               <View style={{ flexDirection: 'row', gap: 10 }}>
@@ -280,7 +347,12 @@ export default function RegisterScreen() {
                 autoCorrect={false}
               />
               {error ? <Text style={s.error}>{error}</Text> : null}
-              <AnimatedButton onPress={handleCreateAccount} disabled={loading} loading={loading} label="CRIAR CONTA" />
+              <AnimatedButton
+                onPress={handleCreateAccount}
+                disabled={loading}
+                loading={loading}
+                label="CRIAR CONTA"
+              />
               <Pressable onPress={handleCreateAccount} style={s.linkBtn}>
                 <Text style={s.link}>Pular esta etapa</Text>
               </Pressable>
@@ -318,11 +390,15 @@ export default function RegisterScreen() {
                 disabled
               />
               <View style={s.divider} />
-              <AnimatedButton onPress={handleEnterApp} disabled={!pendingToken} loading={false} label="ENTRAR NO APP" />
+              <AnimatedButton
+                onPress={handleEnterApp}
+                disabled={!pendingToken}
+                loading={false}
+                label="ENTRAR NO APP"
+              />
             </View>
           </>
         )}
-
       </ScrollView>
     </KeyboardAvoidingView>
   );
@@ -334,9 +410,27 @@ const s = StyleSheet.create({
   backBtn: { marginBottom: 20 },
   backText: { fontFamily: font.bodyBold, fontSize: 13, color: colors.brand },
   kicker: { fontFamily: font.bodyBold, fontSize: 11, color: colors.brand, letterSpacing: 2.4 },
-  title: { fontFamily: 'BebasNeue_400Regular', fontSize: 72, color: colors.text, lineHeight: 72, marginTop: 8 },
-  title2: { fontFamily: 'BebasNeue_400Regular', fontSize: 56, color: colors.text, lineHeight: 56, marginTop: 8 },
-  subtitle: { fontFamily: font.body, fontSize: 13, color: colors.textDim, lineHeight: 20, marginTop: 12 },
+  title: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 72,
+    color: colors.text,
+    lineHeight: 72,
+    marginTop: 8,
+  },
+  title2: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 56,
+    color: colors.text,
+    lineHeight: 56,
+    marginTop: 8,
+  },
+  subtitle: {
+    fontFamily: font.body,
+    fontSize: 13,
+    color: colors.textDim,
+    lineHeight: 20,
+    marginTop: 12,
+  },
   form: { gap: 12 },
   input: {
     backgroundColor: colors.card,
@@ -348,15 +442,38 @@ const s = StyleSheet.create({
     fontFamily: font.body,
     fontSize: 15,
   },
-  phoneContainer: { width: '100%', backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line, borderRadius: 12, overflow: 'hidden' },
+  phoneContainer: {
+    width: '100%',
+    backgroundColor: colors.card,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 12,
+    overflow: 'hidden',
+  },
   phoneTextContainer: { backgroundColor: colors.card, paddingVertical: 0 },
   phoneTextInput: { color: colors.text, fontFamily: font.body, fontSize: 15, height: 52 },
   phoneCode: { color: colors.text, fontFamily: font.body, fontSize: 14 },
-  phoneFlag: { backgroundColor: colors.card, width: 56, alignItems: 'center', justifyContent: 'center' },
+  phoneFlag: {
+    backgroundColor: colors.card,
+    width: 56,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   error: { fontFamily: font.body, fontSize: 13, color: colors.danger },
-  btn: { backgroundColor: colors.brand, borderRadius: 12, padding: 18, alignItems: 'center', marginTop: 4 },
+  btn: {
+    backgroundColor: colors.brand,
+    borderRadius: 12,
+    padding: 18,
+    alignItems: 'center',
+    marginTop: 4,
+  },
   btnDisabled: { opacity: 0.5 },
-  btnText: { fontFamily: 'BebasNeue_400Regular', fontSize: 22, color: colors.brandInk, letterSpacing: 1 },
+  btnText: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    color: colors.brandInk,
+    letterSpacing: 1,
+  },
   linkBtn: { alignItems: 'center', marginTop: 8 },
   link: { fontFamily: font.body, fontSize: 14, color: colors.textDim },
   divider: { height: 1, backgroundColor: colors.line, marginVertical: 4 },
@@ -374,12 +491,32 @@ const ac = StyleSheet.create({
     gap: 12,
   },
   cardDisabled: { opacity: 0.5 },
-  badge: { width: 40, height: 40, borderRadius: 10, alignItems: 'center', justifyContent: 'center', flexShrink: 0 },
+  badge: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
   badgeLetter: { fontFamily: 'BebasNeue_400Regular', fontSize: 22, color: 'white', lineHeight: 22 },
   name: { fontFamily: font.bodyBold, fontSize: 14, color: colors.text },
   desc: { fontFamily: font.body, fontSize: 11, color: colors.textMute, marginTop: 2 },
-  action: { borderWidth: 1, borderColor: colors.brand, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 6, flexShrink: 0 },
+  action: {
+    borderWidth: 1,
+    borderColor: colors.brand,
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    flexShrink: 0,
+  },
   actionText: { fontFamily: font.bodyBold, fontSize: 11, color: colors.brand, letterSpacing: 0.8 },
-  soon: { backgroundColor: 'rgba(255,255,255,0.06)', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 4, flexShrink: 0 },
+  soon: {
+    backgroundColor: 'rgba(255,255,255,0.06)',
+    borderRadius: 6,
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    flexShrink: 0,
+  },
   soonText: { fontFamily: font.bodyBold, fontSize: 9, color: colors.textMute, letterSpacing: 0.8 },
 });

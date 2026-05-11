@@ -1,10 +1,10 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsEmail,
+  IsMobilePhone,
   IsOptional,
   IsString,
   MinLength,
-  IsMobilePhone,
 } from 'class-validator';
 
 export class RegisterDto {

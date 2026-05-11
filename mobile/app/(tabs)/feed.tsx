@@ -16,6 +16,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
@@ -95,15 +96,8 @@ function Avatar({ user, size = 36 }: { user: FeedUser; size?: number }) {
     );
   }
   return (
-    <View
-      style={[
-        s.avatarFallback,
-        { width: size, height: size, borderRadius: radius },
-      ]}
-    >
-      <Text style={[s.avatarInitials, { fontSize: size * 0.34 }]}>
-        {initials(user.name)}
-      </Text>
+    <View style={[s.avatarFallback, { width: size, height: size, borderRadius: radius }]}>
+      <Text style={[s.avatarInitials, { fontSize: size * 0.34 }]}>{initials(user.name)}</Text>
     </View>
   );
 }
@@ -219,7 +213,9 @@ function ActivityCard({
           <Text style={s.activityIcon}>🏃</Text>
         </View>
         <View style={s.activityInfo}>
-          <Text style={s.activityTitle} numberOfLines={1}>{item.title}</Text>
+          <Text style={s.activityTitle} numberOfLines={1}>
+            {item.title}
+          </Text>
           <View style={s.activityStats}>
             <Text style={s.activityKm}>
               {item.distanceKm.toFixed(1)}
@@ -262,11 +258,7 @@ function PostCard({
       <Text style={s.postBody}>{item.body}</Text>
 
       {item.imageUrl ? (
-        <Image
-          source={{ uri: item.imageUrl }}
-          style={s.postImage}
-          resizeMode="cover"
-        />
+        <Image source={{ uri: item.imageUrl }} style={s.postImage} resizeMode="cover" />
       ) : null}
 
       <ReactionBar
@@ -301,12 +293,18 @@ function CommentsSheet({
   const [kbHeight, setKbHeight] = useState(0);
 
   useEffect(() => {
-    if (!visible) { setKbHeight(0); return; }
+    if (!visible) {
+      setKbHeight(0);
+      return;
+    }
     const showEvent = Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow';
     const hideEvent = Platform.OS === 'ios' ? 'keyboardWillHide' : 'keyboardDidHide';
     const show = Keyboard.addListener(showEvent, (e) => setKbHeight(e.endCoordinates.height));
     const hide = Keyboard.addListener(hideEvent, () => setKbHeight(0));
-    return () => { show.remove(); hide.remove(); };
+    return () => {
+      show.remove();
+      hide.remove();
+    };
   }, [visible]);
 
   const load = useCallback(async () => {
@@ -336,7 +334,12 @@ function CommentsSheet({
     }
   };
 
-  const dismiss = () => { setComments([]); setBody(''); setKbHeight(0); onClose(); };
+  const dismiss = () => {
+    setComments([]);
+    setBody('');
+    setKbHeight(0);
+    onClose();
+  };
 
   return (
     <Modal
@@ -373,10 +376,7 @@ function CommentsSheet({
             }
             renderItem={({ item }) => (
               <View style={cs.commentRow}>
-                <Avatar
-                  user={{ ...item.user, assessoria: null }}
-                  size={30}
-                />
+                <Avatar user={{ ...item.user, assessoria: null }} size={30} />
                 <View style={cs.commentBubble}>
                   <Text style={cs.commentName}>{item.user.name}</Text>
                   <Text style={cs.commentBody}>{item.body}</Text>
@@ -508,7 +508,7 @@ function NewPostSheet({
 
         <View style={[np.footer, { paddingBottom: insets.bottom + 12 }]}>
           <Pressable style={np.photoBtn} onPress={pickImage}>
-            <Text style={np.photoBtnText}>📷  Foto</Text>
+            <Text style={np.photoBtnText}>📷 Foto</Text>
           </Pressable>
           <Text style={np.charCount}>{body.length}/500</Text>
           <Pressable
@@ -583,25 +583,14 @@ export default function FeedScreen() {
     initialLoad();
   }
 
-  const renderItem = useCallback(
-    ({ item }: { item: FeedItem }) => {
-      if (item.type === 'activity') {
-        return (
-          <ActivityCard
-            item={item.data}
-            onComments={(type, id) => setCommentsTarget({ type, id })}
-          />
-        );
-      }
+  const renderItem = useCallback(({ item }: { item: FeedItem }) => {
+    if (item.type === 'activity') {
       return (
-        <PostCard
-          item={item.data}
-          onComments={(type, id) => setCommentsTarget({ type, id })}
-        />
+        <ActivityCard item={item.data} onComments={(type, id) => setCommentsTarget({ type, id })} />
       );
-    },
-    [],
-  );
+    }
+    return <PostCard item={item.data} onComments={(type, id) => setCommentsTarget({ type, id })} />;
+  }, []);
 
   return (
     <ScreenTransition>
@@ -621,10 +610,7 @@ export default function FeedScreen() {
             data={items}
             keyExtractor={(item) => `${item.type}-${item.data.id}`}
             renderItem={renderItem}
-            contentContainerStyle={[
-              s.list,
-              { paddingBottom: insets.bottom + 96 },
-            ]}
+            contentContainerStyle={[s.list, { paddingBottom: insets.bottom + 96 }]}
             showsVerticalScrollIndicator={false}
             onEndReached={loadMore}
             onEndReachedThreshold={0.3}
@@ -639,9 +625,7 @@ export default function FeedScreen() {
               <View style={s.empty}>
                 <Text style={s.emptyIcon}>👥</Text>
                 <Text style={s.emptyTitle}>Nenhuma publicação ainda</Text>
-                <Text style={s.emptyDesc}>
-                  Seja o primeiro da sua assessoria a postar!
-                </Text>
+                <Text style={s.emptyDesc}>Seja o primeiro da sua assessoria a postar!</Text>
               </View>
             }
             ListFooterComponent={

@@ -5,6 +5,7 @@ import {
   ApiQuery,
   ApiTags,
 } from '@nestjs/swagger';
+
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { RankingService } from './ranking.service';
 

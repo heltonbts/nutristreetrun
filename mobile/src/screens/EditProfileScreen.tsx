@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { api } from '../lib/api';
 import { colors, font } from '../lib/tokens';
 
@@ -67,9 +68,11 @@ export function EditProfileScreen({ initial, onClose }: Props) {
         </Pressable>
         <Text style={s.title}>EDITAR PERFIL</Text>
         <Pressable onPress={save} disabled={saving}>
-          {saving
-            ? <ActivityIndicator size={14} color={colors.brand} />
-            : <Text style={s.save}>Salvar</Text>}
+          {saving ? (
+            <ActivityIndicator size={14} color={colors.brand} />
+          ) : (
+            <Text style={s.save}>Salvar</Text>
+          )}
         </Pressable>
       </View>
 
@@ -77,8 +80,20 @@ export function EditProfileScreen({ initial, onClose }: Props) {
         <Field label="Nome" value={name} onChangeText={setName} autoCapitalize="words" />
         <Field label="Telefone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
         <Field label="Cidade" value={city} onChangeText={setCity} autoCapitalize="words" />
-        <Field label="Estado (UF)" value={state} onChangeText={(v) => setState(v.toUpperCase())} maxLength={2} autoCapitalize="characters" />
-        <Field label="Assessoria" value={assessoria} onChangeText={setAssessoria} autoCapitalize="words" placeholder="Opcional" />
+        <Field
+          label="Estado (UF)"
+          value={state}
+          onChangeText={(v) => setState(v.toUpperCase())}
+          maxLength={2}
+          autoCapitalize="characters"
+        />
+        <Field
+          label="Assessoria"
+          value={assessoria}
+          onChangeText={setAssessoria}
+          autoCapitalize="words"
+          placeholder="Opcional"
+        />
       </ScrollView>
     </View>
   );
@@ -122,20 +137,40 @@ function Field({
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
   topBar: {
-    flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-    paddingHorizontal: 20, paddingVertical: 14,
-    borderBottomWidth: 1, borderBottomColor: colors.line,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
   },
-  title: { fontFamily: 'BebasNeue_400Regular', fontSize: 18, color: colors.text, letterSpacing: 0.5 },
+  title: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 18,
+    color: colors.text,
+    letterSpacing: 0.5,
+  },
   cancel: { fontFamily: font.body, fontSize: 15, color: colors.textMute },
   save: { fontFamily: font.bodyBold, fontSize: 15, color: colors.brand },
   body: { padding: 20, gap: 16 },
   field: { gap: 6 },
-  label: { fontFamily: font.bodyBold, fontSize: 11, color: colors.textMute, letterSpacing: 1.2, textTransform: 'uppercase' },
+  label: {
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.textMute,
+    letterSpacing: 1.2,
+    textTransform: 'uppercase',
+  },
   input: {
     backgroundColor: colors.card,
-    borderWidth: 1, borderColor: colors.line,
-    borderRadius: 10, paddingHorizontal: 14, paddingVertical: 12,
-    fontFamily: font.body, fontSize: 15, color: colors.text,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    fontFamily: font.body,
+    fontSize: 15,
+    color: colors.text,
   },
 });

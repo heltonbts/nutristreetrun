@@ -10,6 +10,7 @@ import {
   View,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
 import { api } from '../lib/api';
 import { colors, font } from '../lib/tokens';
 
@@ -44,7 +45,7 @@ const PACE_DESC: Record<number, string> = {
 
 const POPULAR_KM = 60;
 
-const MONTHS = ['JAN','FEV','MAR','ABR','MAI','JUN','JUL','AGO','SET','OUT','NOV','DEZ'];
+const MONTHS = ['JAN', 'FEV', 'MAR', 'ABR', 'MAI', 'JUN', 'JUL', 'AGO', 'SET', 'OUT', 'NOV', 'DEZ'];
 
 function paceLabel(km: number) {
   return PACE_LABEL[km] ?? `${km}K`;
@@ -63,9 +64,9 @@ export function ChallengePickerScreen({ onBack, onJoined }: Props) {
   const { data: challenges, isLoading } = useQuery<Challenge[]>({
     queryKey: ['challenges-current'],
     queryFn: () => api.get('/challenges/current').then((r) => r.data as Challenge[]),
-    onSuccess: (data) => {
+    onSuccess: (data: Challenge[]) => {
       if (data.length > 0 && !selectedId) {
-        const popular = data.find((c) => c.goalKm === POPULAR_KM) ?? data[0];
+        const popular = data.find((c: Challenge) => c.goalKm === POPULAR_KM) ?? data[0];
         setSelectedId(popular.id);
       }
     },
@@ -129,9 +130,7 @@ export function ChallengePickerScreen({ onBack, onJoined }: Props) {
                 )}
                 <View style={s.cardRow}>
                   <View style={[s.kmBox, isSel && s.kmBoxSelected]}>
-                    <Text style={[s.kmLabel, isSel && s.kmLabelSelected]}>
-                      {c.goalKm}K
-                    </Text>
+                    <Text style={[s.kmLabel, isSel && s.kmLabelSelected]}>{c.goalKm}K</Text>
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={s.kmTitleRow}>
@@ -141,9 +140,7 @@ export function ChallengePickerScreen({ onBack, onJoined }: Props) {
                     <Text style={s.kmDesc}>{paceDesc(c.goalKm)}</Text>
                   </View>
                   <View style={[s.radio, isSel && s.radioSelected]}>
-                    {isSel && (
-                      <View style={s.radioInner} />
-                    )}
+                    {isSel && <View style={s.radioInner} />}
                   </View>
                 </View>
               </Pressable>
@@ -153,7 +150,8 @@ export function ChallengePickerScreen({ onBack, onJoined }: Props) {
 
         <View style={s.note}>
           <Text style={s.noteText}>
-            <Text style={s.noteBold}>Atenção:</Text> a escolha trava no dia 5 do mês. Depois disso, só no próximo ciclo.
+            <Text style={s.noteBold}>Atenção:</Text> a escolha trava no dia 5 do mês. Depois disso,
+            só no próximo ciclo.
           </Text>
         </View>
       </ScrollView>
@@ -168,9 +166,7 @@ export function ChallengePickerScreen({ onBack, onJoined }: Props) {
           {joining ? (
             <ActivityIndicator color={colors.brandInk} />
           ) : (
-            <Text style={s.ctaText}>
-              ENTRAR NO {selected ? `${selected.goalKm}K` : '—'}
-            </Text>
+            <Text style={s.ctaText}>ENTRAR NO {selected ? `${selected.goalKm}K` : '—'}</Text>
           )}
         </Pressable>
       </View>
@@ -183,26 +179,40 @@ const s = StyleSheet.create({
 
   header: { paddingHorizontal: 20, paddingBottom: 8, paddingTop: 8 },
   backBtn: {
-    width: 36, height: 36, borderRadius: 18,
+    width: 36,
+    height: 36,
+    borderRadius: 18,
     backgroundColor: 'rgba(255,255,255,0.06)',
-    alignItems: 'center', justifyContent: 'center', marginBottom: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 14,
   },
   backArrow: { color: colors.text, fontSize: 26, lineHeight: 30 },
   kicker: { fontFamily: font.bodyBold, fontSize: 11, color: colors.brand, letterSpacing: 2 },
   title: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 44,
-    color: colors.text, lineHeight: 46, letterSpacing: 0.5, marginTop: 6,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 44,
+    color: colors.text,
+    lineHeight: 46,
+    letterSpacing: 0.5,
+    marginTop: 6,
   },
   subtitle: {
-    fontFamily: font.body, fontSize: 13, color: colors.textDim, marginTop: 8, lineHeight: 20,
+    fontFamily: font.body,
+    fontSize: 13,
+    color: colors.textDim,
+    marginTop: 8,
+    lineHeight: 20,
   },
 
   list: { padding: 20, paddingTop: 16, gap: 10 },
 
   card: {
-    padding: 16, borderRadius: 14,
+    padding: 16,
+    borderRadius: 14,
     backgroundColor: colors.card,
-    borderWidth: 1, borderColor: colors.line,
+    borderWidth: 1,
+    borderColor: colors.line,
     position: 'relative',
   },
   cardSelected: {
@@ -210,61 +220,102 @@ const s = StyleSheet.create({
     borderColor: colors.brand,
   },
   popularBadge: {
-    position: 'absolute', top: -8, right: 14,
-    backgroundColor: colors.brand, borderRadius: 999,
-    paddingHorizontal: 10, paddingVertical: 3,
+    position: 'absolute',
+    top: -8,
+    right: 14,
+    backgroundColor: colors.brand,
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 3,
   },
   popularText: { fontFamily: font.bodyBold, fontSize: 9, color: colors.brandInk, letterSpacing: 1 },
 
   cardRow: { flexDirection: 'row', alignItems: 'center', gap: 14 },
   kmBox: {
-    width: 56, height: 56, borderRadius: 14,
+    width: 56,
+    height: 56,
+    borderRadius: 14,
     backgroundColor: 'rgba(255,255,255,0.04)',
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   kmBoxSelected: { backgroundColor: colors.brand },
   kmLabel: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 22,
-    color: colors.text, letterSpacing: 0.4,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    color: colors.text,
+    letterSpacing: 0.4,
   },
   kmLabelSelected: { color: colors.brandInk },
 
   kmTitleRow: { flexDirection: 'row', alignItems: 'baseline', flexWrap: 'wrap' },
   kmKm: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 22, color: colors.text, letterSpacing: 0.4, lineHeight: 24,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    color: colors.text,
+    letterSpacing: 0.4,
+    lineHeight: 24,
   },
   kmPace: { fontFamily: font.bodyBold, fontSize: 10, color: colors.textMute, letterSpacing: 1 },
-  kmDesc: { fontFamily: font.body, fontSize: 12, color: colors.textDim, marginTop: 4, lineHeight: 17 },
+  kmDesc: {
+    fontFamily: font.body,
+    fontSize: 12,
+    color: colors.textDim,
+    marginTop: 4,
+    lineHeight: 17,
+  },
 
   radio: {
-    width: 22, height: 22, borderRadius: 11,
-    borderWidth: 1.5, borderColor: colors.lineHi,
-    alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+    width: 22,
+    height: 22,
+    borderRadius: 11,
+    borderWidth: 1.5,
+    borderColor: colors.lineHi,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
   },
   radioSelected: { borderColor: colors.brand, backgroundColor: colors.brand },
   radioInner: { width: 8, height: 8, borderRadius: 4, backgroundColor: colors.brandInk },
 
   note: {
-    padding: 14, borderRadius: 12, marginTop: 4,
+    padding: 14,
+    borderRadius: 12,
+    marginTop: 4,
     backgroundColor: 'rgba(95,184,168,0.05)',
-    borderWidth: 1, borderColor: 'rgba(95,184,168,0.18)',
+    borderWidth: 1,
+    borderColor: 'rgba(95,184,168,0.18)',
   },
   noteText: { fontFamily: font.body, fontSize: 11, color: colors.textDim, lineHeight: 17 },
   noteBold: { fontFamily: font.bodyBold, color: colors.text },
 
-  empty: { fontFamily: font.body, fontSize: 14, color: colors.textMute, textAlign: 'center', marginTop: 40 },
+  empty: {
+    fontFamily: font.body,
+    fontSize: 14,
+    color: colors.textMute,
+    textAlign: 'center',
+    marginTop: 40,
+  },
 
   footer: {
-    paddingHorizontal: 20, paddingTop: 14,
-    backgroundColor: colors.bg, borderTopWidth: 1, borderTopColor: colors.line,
+    paddingHorizontal: 20,
+    paddingTop: 14,
+    backgroundColor: colors.bg,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
   },
   ctaBtn: {
-    backgroundColor: colors.brand, borderRadius: 14,
-    paddingVertical: 16, alignItems: 'center',
+    backgroundColor: colors.brand,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
   },
   ctaBtnDisabled: { opacity: 0.5 },
   ctaText: {
-    fontFamily: 'BebasNeue_400Regular', fontSize: 22,
-    color: colors.brandInk, letterSpacing: 1,
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    color: colors.brandInk,
+    letterSpacing: 1,
   },
 });

@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
 import { APP_GUARD } from '@nestjs/core';
 import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
+
 import { ActivitiesModule } from './activities/activities.module';
 import { AuthModule } from './auth/auth.module';
+import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { ChallengesModule } from './challenges/challenges.module';
 import { FeedModule } from './feed/feed.module';
-import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { HomeModule } from './home/home.module';
 import { PostsModule } from './posts/posts.module';
 import { PrismaModule } from './prisma/prisma.module';
