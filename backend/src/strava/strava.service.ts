@@ -25,6 +25,43 @@ interface StravaActivity {
   average_speed: number; // m/s
 }
 
+interface StravaSplit {
+  split: number;
+  distance: number;
+  moving_time: number;
+  elapsed_time: number;
+  elevation_difference: number;
+  average_speed: number;
+  average_cadence?: number;
+  average_heartrate?: number;
+}
+
+export interface StravaDetailActivity {
+  id: number;
+  name: string;
+  type: string;
+  sport_type: string;
+  distance: number;
+  moving_time: number;
+  elapsed_time: number;
+  total_elevation_gain: number;
+  start_date: string;
+  start_date_local: string;
+  timezone: string;
+  average_speed: number;
+  max_speed: number;
+  average_cadence?: number;
+  average_heartrate?: number;
+  max_heartrate?: number;
+  calories?: number;
+  suffer_score?: number;
+  achievement_count: number;
+  kudos_count: number;
+  comment_count: number;
+  description?: string;
+  splits_metric?: StravaSplit[];
+}
+
 @Injectable()
 export class StravaService {
   private readonly logger = new Logger(StravaService.name);
@@ -112,6 +149,17 @@ export class StravaService {
     );
 
     return { synced: activities.length };
+  }
+
+  async getActivityDetail(
+    userId: string,
+    stravaId: number,
+  ): Promise<StravaDetailActivity> {
+    const token = await this.getValidToken(userId);
+    const res = await fetch(`${STRAVA_API}/activities/${stravaId}`, {
+      headers: { Authorization: `Bearer ${token}` },
+    });
+    return res.json() as Promise<StravaDetailActivity>;
   }
 
   async handleWebhookEvent(event: {

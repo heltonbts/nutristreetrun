@@ -99,6 +99,8 @@ export class ProfileService {
         state: user.state,
         assessoria: user.assessoria,
         avatarUrl: user.avatarUrl,
+        weightKg: user.weightKg,
+        heightCm: user.heightCm,
       },
       address: {
         zipCode: user.zipCode,
@@ -126,6 +128,8 @@ export class ProfileService {
       city?: string;
       state?: string;
       assessoria?: string;
+      weightKg?: number;
+      heightCm?: number;
     },
   ) {
     const user = await this.prisma.user.update({
@@ -136,6 +140,8 @@ export class ProfileService {
         ...(dto.city !== undefined && { city: dto.city }),
         ...(dto.state !== undefined && { state: dto.state }),
         ...(dto.assessoria !== undefined && { assessoria: dto.assessoria }),
+        ...(dto.weightKg !== undefined && { weightKg: dto.weightKg }),
+        ...(dto.heightCm !== undefined && { heightCm: dto.heightCm }),
       },
     });
     return {
@@ -144,6 +150,8 @@ export class ProfileService {
       city: user.city,
       state: user.state,
       assessoria: user.assessoria,
+      weightKg: user.weightKg,
+      heightCm: user.heightCm,
     };
   }
 

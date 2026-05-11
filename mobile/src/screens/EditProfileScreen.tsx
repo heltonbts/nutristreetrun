@@ -3,6 +3,8 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  KeyboardAvoidingView,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -22,6 +24,8 @@ interface Props {
     city: string | null;
     state: string | null;
     assessoria: string | null;
+    weightKg: number | null;
+    heightCm: number | null;
   };
   onClose: () => void;
 }
@@ -36,6 +40,8 @@ export function EditProfileScreen({ initial, onClose }: Props) {
   const [city, setCity] = useState(initial.city ?? '');
   const [state, setState] = useState(initial.state ?? '');
   const [assessoria, setAssessoria] = useState(initial.assessoria ?? '');
+  const [weight, setWeight] = useState(initial.weightKg != null ? String(initial.weightKg) : '');
+  const [height, setHeight] = useState(initial.heightCm != null ? String(initial.heightCm) : '');
 
   async function save() {
     if (!name.trim()) {
@@ -44,12 +50,16 @@ export function EditProfileScreen({ initial, onClose }: Props) {
     }
     setSaving(true);
     try {
+      const weightNum = parseFloat(weight.replace(',', '.'));
+      const heightNum = parseInt(height, 10);
       await api.patch('/profile', {
         name: name.trim(),
         phone: phone.trim(),
         city: city.trim() || undefined,
         state: state.trim() || undefined,
         assessoria: assessoria.trim() || undefined,
+        weightKg: weight.trim() && !isNaN(weightNum) ? weightNum : undefined,
+        heightCm: height.trim() && !isNaN(heightNum) ? heightNum : undefined,
       });
       await queryClient.invalidateQueries({ queryKey: ['profile'] });
       onClose();
@@ -61,7 +71,11 @@ export function EditProfileScreen({ initial, onClose }: Props) {
   }
 
   return (
-    <View style={[s.root, { paddingTop: insets.top }]}>
+    <KeyboardAvoidingView
+      style={[s.root, { paddingTop: insets.top }]}
+      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+      keyboardVerticalOffset={0}
+    >
       <View style={s.topBar}>
         <Pressable onPress={onClose}>
           <Text style={s.cancel}>Cancelar</Text>
@@ -76,7 +90,10 @@ export function EditProfileScreen({ initial, onClose }: Props) {
         </Pressable>
       </View>
 
-      <ScrollView contentContainerStyle={[s.body, { paddingBottom: 32 + insets.bottom }]}>
+      <ScrollView
+        contentContainerStyle={[s.body, { paddingBottom: 32 + insets.bottom }]}
+        keyboardShouldPersistTaps="handled"
+      >
         <Field label="Nome" value={name} onChangeText={setName} autoCapitalize="words" />
         <Field label="Telefone" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
         <Field label="Cidade" value={city} onChangeText={setCity} autoCapitalize="words" />
@@ -94,8 +111,30 @@ export function EditProfileScreen({ initial, onClose }: Props) {
           autoCapitalize="words"
           placeholder="Opcional"
         />
+
+        <View style={s.row}>
+          <View style={{ flex: 1 }}>
+            <Field
+              label="Peso (kg)"
+              value={weight}
+              onChangeText={setWeight}
+              keyboardType="decimal-pad"
+              placeholder="Ex: 70.5"
+            />
+          </View>
+          <View style={{ width: 12 }} />
+          <View style={{ flex: 1 }}>
+            <Field
+              label="Altura (cm)"
+              value={height}
+              onChangeText={setHeight}
+              keyboardType="number-pad"
+              placeholder="Ex: 175"
+            />
+          </View>
+        </View>
       </ScrollView>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
@@ -111,7 +150,7 @@ function Field({
   label: string;
   value: string;
   onChangeText: (v: string) => void;
-  keyboardType?: 'default' | 'phone-pad';
+  keyboardType?: 'default' | 'phone-pad' | 'decimal-pad' | 'number-pad';
   autoCapitalize?: 'none' | 'words' | 'characters';
   maxLength?: number;
   placeholder?: string;
@@ -135,7 +174,7 @@ function Field({
 }
 
 const s = StyleSheet.create({
-  root: { flex: 1, backgroundColor: colors.bg },
+  root: { flex: 1, backgroundColor: colors.bg, paddingBottom: 0 },
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -154,6 +193,7 @@ const s = StyleSheet.create({
   cancel: { fontFamily: font.body, fontSize: 15, color: colors.textMute },
   save: { fontFamily: font.bodyBold, fontSize: 15, color: colors.brand },
   body: { padding: 20, gap: 16 },
+  row: { flexDirection: 'row' },
   field: { gap: 6 },
   label: {
     fontFamily: font.bodyBold,

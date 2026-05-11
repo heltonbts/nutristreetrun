@@ -6,5 +6,6 @@ import { StravaService } from './strava.service';
 @Module({
   controllers: [StravaController],
   providers: [StravaService],
+  exports: [StravaService],
 })
 export class StravaModule {}

@@ -34,6 +34,8 @@ interface ProfileData {
     state: string | null;
     assessoria: string | null;
     avatarUrl: string | null;
+    weightKg: number | null;
+    heightCm: number | null;
   };
   strava: { connected: boolean; stravaId: number | null };
   challenge: {
@@ -327,6 +329,8 @@ export default function ProfileScreen() {
                 city: data.user.city ?? data.address.deliveryCity,
                 state: data.user.state ?? data.address.deliveryState,
                 assessoria: data.user.assessoria,
+                weightKg: data.user.weightKg,
+                heightCm: data.user.heightCm,
               }}
               onClose={() => setShowEditProfile(false)}
             />

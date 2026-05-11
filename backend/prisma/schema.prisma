@@ -17,6 +17,8 @@ model User {
   state      String?
   assessoria String?
   avatarUrl    String?
+  weightKg     Float?
+  heightCm     Int?
   zipCode      String?
   street       String?
   streetNumber String?
