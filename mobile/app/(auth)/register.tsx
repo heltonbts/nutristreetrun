@@ -168,33 +168,14 @@ export default function RegisterScreen() {
     }
   }
 
-  function buildStravaUrl(token: string): string {
-    const payload = JSON.parse(
-      decodeURIComponent(
-        atob(token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/'))
-          .split('')
-          .map((c) => '%' + c.charCodeAt(0).toString(16).padStart(2, '0'))
-          .join(''),
-      ),
-    ) as { sub: string };
-    const apiBase = process.env.EXPO_PUBLIC_API_URL ?? 'http://localhost:3000';
-    const params = new URLSearchParams({
-      client_id: '237214',
-      redirect_uri: `${apiBase}/auth/strava/callback`,
-      response_type: 'code',
-      approval_prompt: 'auto',
-      scope: 'activity:read_all',
-      state: payload.sub,
-    });
-    return `https://www.strava.com/oauth/authorize?${params.toString()}`;
-  }
-
   async function handleConnectStrava() {
     if (!pendingToken) return;
     setStravaLoading(true);
     try {
-      const url = buildStravaUrl(pendingToken);
-      await Linking.openURL(url);
+      const { data } = await api.get<{ url: string }>('/auth/strava/url', {
+        headers: { Authorization: `Bearer ${pendingToken}` },
+      });
+      await Linking.openURL(data.url);
     } catch (err) {
       Alert.alert('Erro ao conectar Strava', String(err));
     } finally {
