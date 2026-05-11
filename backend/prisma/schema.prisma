@@ -30,6 +30,9 @@ model User {
   activities       Activity[]
   userChallenges   UserChallenge[]
   stravaConnection StravaConnection?
+  posts            Post[]
+  reactions        Reaction[]
+  comments         Comment[]
 }
 
 model Challenge {
@@ -79,6 +82,46 @@ model StravaConnection {
   updatedAt    DateTime @updatedAt
 
   user User @relation(fields: [userId], references: [id])
+}
+
+model Post {
+  id        String   @id @default(cuid())
+  userId    String
+  body      String
+  imageUrl  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([userId, createdAt])
+}
+
+model Reaction {
+  id         String   @id @default(cuid())
+  userId     String
+  targetType String
+  targetId   String
+  type       String   @default("fire")
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@unique([userId, targetType, targetId])
+  @@index([targetType, targetId])
+}
+
+model Comment {
+  id         String   @id @default(cuid())
+  userId     String
+  targetType String
+  targetId   String
+  body       String
+  createdAt  DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id])
+
+  @@index([targetType, targetId, createdAt])
 }
 
 model Activity {

@@ -4,11 +4,14 @@ import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { ActivitiesModule } from './activities/activities.module';
 import { AuthModule } from './auth/auth.module';
 import { ChallengesModule } from './challenges/challenges.module';
+import { FeedModule } from './feed/feed.module';
 import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { HomeModule } from './home/home.module';
+import { PostsModule } from './posts/posts.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfileModule } from './profile/profile.module';
 import { RankingModule } from './ranking/ranking.module';
+import { SocialModule } from './social/social.module';
 import { StravaModule } from './strava/strava.module';
 
 @Module({
@@ -27,6 +30,9 @@ import { StravaModule } from './strava/strava.module';
     StravaModule,
     RankingModule,
     ProfileModule,
+    FeedModule,
+    PostsModule,
+    SocialModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
