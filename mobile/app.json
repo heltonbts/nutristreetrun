@@ -14,7 +14,17 @@
     },
     "ios": {
       "supportsTablet": false,
-      "bundleIdentifier": "com.nutristreetrun.app"
+      "bundleIdentifier": "com.nutristreetrun.app",
+      "infoPlist": {
+        "NSPhotoLibraryUsageDescription": "Usado para enviar foto de perfil e publicar no feed.",
+        "NSCameraUsageDescription": "Usado para tirar foto de perfil e publicar no feed.",
+        "NSHealthShareUsageDescription": "Usado para importar suas corridas automaticamente.",
+        "NSHealthUpdateUsageDescription": "Usado para registrar atividades no Apple Health."
+      },
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.access": []
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -22,7 +32,8 @@
         "backgroundColor": "#0E1110"
       },
       "package": "com.nutristreetrun.app",
-      "edgeToEdgeEnabled": true
+      "edgeToEdgeEnabled": true,
+      "permissions": ["android.permission.RECEIVE_BOOT_COMPLETED", "android.permission.VIBRATE"]
     },
     "scheme": "nutristreetrun",
     "web": {
@@ -31,7 +42,22 @@
     "plugins": [
       "expo-router",
       "expo-secure-store",
-      "expo-font"
+      "expo-font",
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#5FB8A8",
+          "defaultChannel": "default"
+        }
+      ],
+      [
+        "expo-image-picker",
+        {
+          "photosPermission": "Usado para enviar foto de perfil e publicar no feed.",
+          "cameraPermission": "Usado para tirar foto de perfil e publicar no feed."
+        }
+      ]
     ]
   }
 }
