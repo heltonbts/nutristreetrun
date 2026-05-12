@@ -8,6 +8,7 @@ import { JwtAuthGuard } from './auth/guards/jwt-auth.guard';
 import { ChallengesModule } from './challenges/challenges.module';
 import { FeedModule } from './feed/feed.module';
 import { HomeModule } from './home/home.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { PostsModule } from './posts/posts.module';
 import { PrismaModule } from './prisma/prisma.module';
 import { ProfileModule } from './profile/profile.module';
@@ -24,6 +25,7 @@ import { StravaModule } from './strava/strava.module';
       ],
     }),
     PrismaModule,
+    NotificationsModule,
     AuthModule,
     HomeModule,
     ChallengesModule,

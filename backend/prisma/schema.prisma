@@ -26,6 +26,7 @@ model User {
   neighborhood String?
   deliveryCity  String?
   deliveryState String?
+  pushToken     String?
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -134,10 +135,13 @@ model Activity {
   distanceKm Float
   pace       String?
   source     String
-  counts     Boolean  @default(true)
-  skipReason String?
-  startedAt  DateTime
-  createdAt  DateTime @default(now())
+  counts         Boolean  @default(true)
+  skipReason     String?
+  startedAt      DateTime
+  avgHeartRate   Int?
+  maxHeartRate   Int?
+  caloriesBurned Float?
+  createdAt      DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])
 }

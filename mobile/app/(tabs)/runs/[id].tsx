@@ -25,6 +25,9 @@ interface ActivityDetail {
   skipReason: string | null;
   startedAt: string;
   stravaId: number | null;
+  avgHeartRate: number | null;
+  maxHeartRate: number | null;
+  caloriesBurned: number | null;
   strava: {
     distance: number;
     moving_time: number;
@@ -129,10 +132,10 @@ export default function RunDetailScreen() {
   const movingTime = st?.moving_time ?? 0;
   const pace = data?.pace ?? (st ? speedToPace(st.average_speed) : '—');
   const elevation = st?.total_elevation_gain ?? 0;
-  const avgHr = st?.average_heartrate;
-  const maxHr = st?.max_heartrate;
+  const avgHr = st?.average_heartrate ?? data?.avgHeartRate ?? null;
+  const maxHr = st?.max_heartrate ?? data?.maxHeartRate ?? null;
   const cadence = st?.average_cadence ? Math.round(st.average_cadence * 2) : null;
-  const calories = st?.calories;
+  const calories = st?.calories ?? data?.caloriesBurned ?? null;
   const sufferScore = st?.suffer_score;
   const maxSpeedPace = st ? speedToPace(st.max_speed) : null;
   const splits = st?.splits_metric ?? [];

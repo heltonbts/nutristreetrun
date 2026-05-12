@@ -1,7 +1,7 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { useState } from 'react';
-import { Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Path, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
 
@@ -164,6 +164,17 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
   const [showPicker, setShowPicker] = useState(false);
+
+  const runCardAnim = useRef(new Animated.Value(0)).current;
+  useEffect(() => {
+    Animated.spring(runCardAnim, {
+      toValue: 1,
+      delay: 300,
+      useNativeDriver: true,
+      tension: 60,
+      friction: 10,
+    }).start();
+  }, [runCardAnim]);
 
   const { data, isLoading } = useQuery<HomeData>({
     queryKey: ['home'],
@@ -370,6 +381,29 @@ export default function HomeScreen() {
             </View>
           </View>
         </View>
+
+        {/* ── NOVA CORRIDA ── */}
+        <Animated.View
+          style={[
+            s.section,
+            {
+              opacity: runCardAnim,
+              transform: [
+                { scale: runCardAnim.interpolate({ inputRange: [0, 1], outputRange: [0.92, 1] }) },
+                {
+                  translateY: runCardAnim.interpolate({ inputRange: [0, 1], outputRange: [12, 0] }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Pressable style={s.runCard} onPress={() => router.push('/runs/tracker')}>
+            <View style={s.runCardInfo}>
+              <Text style={s.runCardTitle}>NOVA CORRIDA</Text>
+            </View>
+            <Text style={s.runCardArrow}>→</Text>
+          </Pressable>
+        </Animated.View>
 
         {/* ── RANKING ── */}
         {r && r.total > 0 && (
@@ -656,6 +690,31 @@ const s = StyleSheet.create({
   actKm: { fontFamily: 'BebasNeue_400Regular', fontSize: 22, color: colors.text, lineHeight: 22 },
   actKmUnit: { fontFamily: font.body, fontSize: 11, color: colors.textDim },
   actCounts: { fontFamily: font.bodyBold, fontSize: 9, letterSpacing: 0.8, marginTop: 3 },
+
+  runCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    backgroundColor: colors.brand,
+    borderRadius: 16,
+    padding: 18,
+  },
+  runCardInfo: { flex: 1 },
+  runCardTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 22,
+    color: colors.brandInk,
+    letterSpacing: 1,
+    lineHeight: 24,
+  },
+  runCardSub: {
+    fontFamily: font.body,
+    fontSize: 12,
+    color: colors.brandInk,
+    opacity: 0.75,
+    marginTop: 2,
+  },
+  runCardArrow: { fontFamily: font.bodyBold, fontSize: 20, color: colors.brandInk },
 });
 
 const sh = StyleSheet.create({

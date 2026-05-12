@@ -182,6 +182,14 @@ export class ProfileService {
     return { ok: true };
   }
 
+  async updatePushToken(userId: string, token: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { pushToken: token },
+    });
+    return { ok: true };
+  }
+
   async uploadAvatar(
     userId: string,
     buffer: Buffer,

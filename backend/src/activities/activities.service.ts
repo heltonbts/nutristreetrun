@@ -1,14 +1,147 @@
 import { Injectable } from '@nestjs/common';
 
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { StravaDetailActivity, StravaService } from '../strava/strava.service';
+import { CreateActivityDto } from './dto/create-activity.dto';
 
 @Injectable()
 export class ActivitiesService {
   constructor(
     private prisma: PrismaService,
     private stravaService: StravaService,
+    private notificationsService: NotificationsService,
   ) {}
+
+  async create(userId: string, dto: CreateActivityDto) {
+    const MAX_PACE_SEC_PER_KM = 540;
+    const paceSecPerKm = dto.durationSeconds / dto.distanceKm;
+    const counts = paceSecPerKm <= MAX_PACE_SEC_PER_KM;
+    const skipReason = counts ? undefined : 'Pace fora do critério';
+
+    const paceMin = Math.floor(paceSecPerKm / 60);
+    const paceSec = Math.round(paceSecPerKm % 60);
+    const pace = `${paceMin}'${String(paceSec).padStart(2, '0')}"`;
+
+    const startedAt = dto.startedAt ? new Date(dto.startedAt) : new Date();
+    const weekdays = [
+      'domingo',
+      'segunda',
+      'terça',
+      'quarta',
+      'quinta',
+      'sexta',
+      'sábado',
+    ];
+    const title =
+      dto.title?.trim() || `Corrida de ${weekdays[startedAt.getDay()]}`;
+
+    const activity = await this.prisma.activity.create({
+      data: {
+        userId,
+        title,
+        distanceKm: Math.round(dto.distanceKm * 10) / 10,
+        pace,
+        source: 'Manual',
+        counts,
+        skipReason,
+        startedAt,
+        avgHeartRate: dto.avgHeartRate,
+        maxHeartRate: dto.maxHeartRate,
+        caloriesBurned: dto.caloriesBurned
+          ? Math.round(dto.caloriesBurned)
+          : undefined,
+      },
+    });
+
+    // Check personal best pace among all valid runs
+    let newBestPace = false;
+    if (counts) {
+      const best = await this.prisma.activity.findFirst({
+        where: { userId, counts: true, id: { not: activity.id } },
+        orderBy: { pace: 'asc' },
+      });
+
+      if (!best) {
+        newBestPace = true;
+      } else {
+        const m = best.pace?.match(/^(\d+)'(\d+)/);
+        const bestSec = m ? parseInt(m[1]) * 60 + parseInt(m[2]) : Infinity;
+        newBestPace = paceSecPerKm < bestSec;
+      }
+    }
+
+    // Push notifications: new record + challenge milestones
+    void this.sendActivityNotifications(userId, activity, pace, newBestPace);
+
+    return { ...activity, newBestPace };
+  }
+
+  private async sendActivityNotifications(
+    userId: string,
+    activity: {
+      id: string;
+      distanceKm: number;
+      counts: boolean;
+      startedAt: Date;
+    },
+    pace: string,
+    newBestPace: boolean,
+  ) {
+    const [user, challenge] = await Promise.all([
+      this.prisma.user.findUnique({
+        where: { id: userId },
+        select: { pushToken: true },
+      }),
+      this.prisma.challenge.findFirst({
+        where: {
+          startsAt: { lte: activity.startedAt },
+          endsAt: { gte: activity.startedAt },
+        },
+      }),
+    ]);
+
+    const token = user?.pushToken;
+
+    if (newBestPace && token) {
+      void this.notificationsService.send(
+        token,
+        '⚡ Novo recorde pessoal!',
+        `Você bateu seu melhor pace: ${pace}/km. Continue assim!`,
+      );
+    }
+
+    if (!challenge || !token || !activity.counts) return;
+
+    const agg = await this.prisma.activity.aggregate({
+      where: {
+        userId,
+        counts: true,
+        startedAt: { gte: challenge.startsAt, lte: challenge.endsAt },
+      },
+      _sum: { distanceKm: true },
+    });
+
+    const newTotal = agg._sum.distanceKm ?? 0;
+    const prevTotal = newTotal - activity.distanceKm;
+    const pct = challenge.goalKm > 0 ? (newTotal / challenge.goalKm) * 100 : 0;
+    const prevPct =
+      challenge.goalKm > 0 ? (prevTotal / challenge.goalKm) * 100 : 0;
+
+    if (prevPct < 100 && pct >= 100) {
+      void this.notificationsService.send(
+        token,
+        '🏆 Meta alcançada!',
+        `Você completou os ${challenge.goalKm}km do ${challenge.title}! Sua medalha está a caminho.`,
+      );
+    } else if (prevPct < 50 && pct >= 50) {
+      void this.notificationsService.send(
+        token,
+        '🔥 Metade do caminho!',
+        `${newTotal.toFixed(1)}km de ${challenge.goalKm}km. Você está na metade da meta!`,
+      );
+    }
+  }
 
   async getChartData(userId: string, months: number) {
     const LABELS = [

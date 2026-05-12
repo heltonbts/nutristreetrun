@@ -15,11 +15,18 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.nutristreetrun.app",
+      "entitlements": {
+        "com.apple.developer.healthkit": true,
+        "com.apple.developer.healthkit.background-delivery": true
+      },
       "infoPlist": {
         "NSPhotoLibraryUsageDescription": "Usado para enviar foto de perfil e publicar no feed.",
         "NSCameraUsageDescription": "Usado para tirar foto de perfil e publicar no feed.",
         "NSHealthShareUsageDescription": "Usado para importar suas corridas automaticamente.",
-        "NSHealthUpdateUsageDescription": "Usado para registrar atividades no Apple Health."
+        "NSHealthUpdateUsageDescription": "Usado para registrar atividades no Apple Health.",
+        "NSLocationWhenInUseUsageDescription": "Usado para rastrear sua corrida em tempo real.",
+        "NSLocationAlwaysAndWhenInUseUsageDescription": "Usado para rastrear sua corrida mesmo com a tela bloqueada.",
+        "UIBackgroundModes": ["location"]
       }
     },
     "android": {
@@ -29,7 +36,14 @@
       },
       "package": "com.nutristreetrun.app",
       "edgeToEdgeEnabled": true,
-      "permissions": ["android.permission.RECEIVE_BOOT_COMPLETED", "android.permission.VIBRATE"]
+      "permissions": [
+        "android.permission.RECEIVE_BOOT_COMPLETED",
+        "android.permission.VIBRATE",
+        "android.permission.ACCESS_FINE_LOCATION",
+        "android.permission.ACCESS_COARSE_LOCATION",
+        "android.permission.ACCESS_BACKGROUND_LOCATION",
+        "android.permission.FOREGROUND_SERVICE"
+      ]
     },
     "scheme": "nutristreetrun",
     "web": {
@@ -39,6 +53,15 @@
       "expo-router",
       "expo-secure-store",
       "expo-font",
+      [
+        "expo-location",
+        {
+          "locationAlwaysAndWhenInUsePermission": "Usado para rastrear sua corrida mesmo com a tela bloqueada.",
+          "locationWhenInUsePermission": "Usado para rastrear sua corrida em tempo real.",
+          "isIosBackgroundLocationEnabled": true,
+          "isAndroidBackgroundLocationEnabled": true
+        }
+      ],
       [
         "expo-notifications",
         {

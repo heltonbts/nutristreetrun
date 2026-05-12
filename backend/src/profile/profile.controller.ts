@@ -52,6 +52,15 @@ export class ProfileController {
     return this.profileService.updateAddress(user.id, dto);
   }
 
+  @Patch('push-token')
+  @ApiOperation({ summary: 'Registra token de push notification' })
+  updatePushToken(
+    @CurrentUser() user: { id: string },
+    @Body() dto: { token: string },
+  ) {
+    return this.profileService.updatePushToken(user.id, dto.token);
+  }
+
   @Post('avatar')
   @ApiOperation({ summary: 'Upload de foto de perfil' })
   @ApiConsumes('multipart/form-data')

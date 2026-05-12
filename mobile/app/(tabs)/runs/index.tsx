@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -6,6 +7,29 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenTransition } from '../../../src/components/ScreenTransition';
 import { api } from '../../../src/lib/api';
 import { colors, font } from '../../../src/lib/tokens';
+
+const TEST_NOTIFICATIONS = [
+  {
+    title: '⚡ Novo recorde pessoal!',
+    body: 'Você bateu seu melhor pace: 4\'32"/km. Continue assim!',
+  },
+  { title: '🔥 Metade do caminho!', body: '30.5km de 60km. Você está na metade da meta!' },
+  {
+    title: '🏆 Meta alcançada!',
+    body: 'Você completou os 60km do DESAFIO 60K! Sua medalha está a caminho.',
+  },
+];
+
+async function fireTestNotification(idx: number) {
+  await Notifications.scheduleNotificationAsync({
+    content: {
+      title: TEST_NOTIFICATIONS[idx].title,
+      body: TEST_NOTIFICATIONS[idx].body,
+      sound: 'default',
+    },
+    trigger: null,
+  });
+}
 
 interface Activity {
   id: string;
@@ -219,6 +243,7 @@ function StatBox({ value, unit, label }: { value: string; unit?: string; label: 
 
 export default function RunsScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const now = new Date();
 
   const { data: activities, isLoading: loadingActs } = useQuery<Activity[]>({
@@ -266,13 +291,25 @@ export default function RunsScreen() {
     <ScreenTransition>
       <ScrollView
         style={s.root}
-        contentContainerStyle={{ paddingBottom: insets.bottom + 24 }}
+        contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header */}
         <View style={[s.header, { paddingTop: insets.top + 12 }]}>
           <Text style={s.kicker}>{monthLabel}</Text>
           <Text style={s.screenTitle}>MINHAS CORRIDAS</Text>
+        </View>
+
+        {/* DEBUG — remover antes do submit */}
+        <View style={s.debugPanel}>
+          <Text style={s.debugLabel}>🔔 TESTAR NOTIFICAÇÕES</Text>
+          <View style={s.debugRow}>
+            {TEST_NOTIFICATIONS.map((n, i) => (
+              <Pressable key={i} style={s.debugBtn} onPress={() => fireTestNotification(i)}>
+                <Text style={s.debugBtnText}>{n.title.split(' ')[0]}</Text>
+              </Pressable>
+            ))}
+          </View>
         </View>
 
         {isLoading ? (
@@ -337,6 +374,14 @@ export default function RunsScreen() {
           </>
         )}
       </ScrollView>
+
+      {/* FAB — start a new run */}
+      <Pressable
+        style={[s.fab, { bottom: insets.bottom + 24 }]}
+        onPress={() => router.push('/runs/tracker')}
+      >
+        <Text style={s.fabText}>CORRER</Text>
+      </Pressable>
     </ScreenTransition>
   );
 }
@@ -570,5 +615,51 @@ const s = StyleSheet.create({
     color: colors.textMute,
     textAlign: 'center',
     lineHeight: 18,
+  },
+  debugPanel: {
+    marginHorizontal: 20,
+    marginBottom: 12,
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,200,0,0.3)',
+    backgroundColor: 'rgba(255,200,0,0.06)',
+    gap: 10,
+  },
+  debugLabel: {
+    fontFamily: font.bodyBold,
+    fontSize: 10,
+    color: 'rgba(255,200,0,0.8)',
+    letterSpacing: 1,
+  },
+  debugRow: { flexDirection: 'row', gap: 8 },
+  debugBtn: {
+    flex: 1,
+    backgroundColor: 'rgba(255,200,0,0.12)',
+    borderRadius: 8,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,200,0,0.2)',
+  },
+  debugBtnText: { fontFamily: font.bodyBold, fontSize: 18 },
+  fab: {
+    position: 'absolute',
+    alignSelf: 'center',
+    backgroundColor: colors.brand,
+    borderRadius: 32,
+    paddingHorizontal: 32,
+    paddingVertical: 16,
+    shadowColor: colors.brand,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 12,
+    elevation: 8,
+  },
+  fabText: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 20,
+    color: colors.brandInk,
+    letterSpacing: 3,
   },
 });

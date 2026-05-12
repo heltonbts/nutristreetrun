@@ -1,4 +1,12 @@
-import { Controller, Get, Param, ParseIntPipe, Query } from '@nestjs/common';
+import {
+  Body,
+  Controller,
+  Get,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+} from '@nestjs/common';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -8,12 +16,19 @@ import {
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { ActivitiesService } from './activities.service';
+import { CreateActivityDto } from './dto/create-activity.dto';
 
 @ApiTags('Activities')
 @ApiBearerAuth()
 @Controller('activities')
 export class ActivitiesController {
   constructor(private activitiesService: ActivitiesService) {}
+
+  @Post()
+  @ApiOperation({ summary: 'Registra uma corrida manual' })
+  create(@CurrentUser() user: { id: string }, @Body() dto: CreateActivityDto) {
+    return this.activitiesService.create(user.id, dto);
+  }
 
   @Get()
   @ApiOperation({ summary: 'Lista atividades do usuário (padrão: mês atual)' })

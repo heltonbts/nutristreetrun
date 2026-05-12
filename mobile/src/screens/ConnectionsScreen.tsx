@@ -14,6 +14,7 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { api } from '../lib/api';
+import { initHealthKit, requestHealthKitPermissions } from '../lib/healthKit';
 import { colors, font } from '../lib/tokens';
 
 interface Props {
@@ -38,8 +39,8 @@ const APPS: AppConnection[] = [
   {
     id: 'apple_health',
     name: 'Apple Health',
-    description: 'Disponível na versão completa',
-    available: false,
+    description: 'Sincroniza FC, calorias e corridas',
+    available: true,
   },
   {
     id: 'google_fit',
@@ -83,7 +84,12 @@ export function ConnectionsScreen({ strava, onClose }: Props) {
   const insets = useSafeAreaInsets();
   const queryClient = useQueryClient();
   const [loadingId, setLoadingId] = useState<string | null>(null);
+  const [appleHealthConnected, setAppleHealthConnected] = useState(false);
   const waitingCallback = useRef(false);
+
+  useEffect(() => {
+    initHealthKit().then((ok) => setAppleHealthConnected(ok));
+  }, []);
 
   useEffect(() => {
     const sub = AppState.addEventListener('change', (state: AppStateStatus) => {
@@ -104,6 +110,18 @@ export function ConnectionsScreen({ strava, onClose }: Props) {
     } catch {
       waitingCallback.current = false;
       Alert.alert('Erro', 'Não foi possível abrir a autorização do Strava.');
+    } finally {
+      setLoadingId(null);
+    }
+  }
+
+  async function connectAppleHealth() {
+    setLoadingId('apple_health');
+    try {
+      const ok = await requestHealthKitPermissions();
+      setAppleHealthConnected(ok);
+      if (!ok)
+        Alert.alert('Permissão negada', 'Autorize o acesso ao Apple Health nas configurações.');
     } finally {
       setLoadingId(null);
     }
@@ -141,7 +159,8 @@ export function ConnectionsScreen({ strava, onClose }: Props) {
         {APPS.map((app) => {
           const Icon = ICONS[app.id];
           const isStrava = app.id === 'strava';
-          const connected = isStrava ? strava.connected : false;
+          const isApple = app.id === 'apple_health';
+          const connected = isStrava ? strava.connected : isApple ? appleHealthConnected : false;
 
           return (
             <View key={app.id} style={s.appRow}>
@@ -161,21 +180,23 @@ export function ConnectionsScreen({ strava, onClose }: Props) {
                     <View style={s.dot} />
                     <Text style={s.pillConnectedText}>Conectado</Text>
                   </View>
-                  <Pressable style={s.syncBtn} onPress={syncStrava} disabled={loadingId !== null}>
-                    {loadingId === 'strava-sync' ? (
-                      <ActivityIndicator size={11} color={colors.brandInk} />
-                    ) : (
-                      <Text style={s.syncBtnText}>SINCRONIZAR</Text>
-                    )}
-                  </Pressable>
+                  {isStrava && (
+                    <Pressable style={s.syncBtn} onPress={syncStrava} disabled={loadingId !== null}>
+                      {loadingId === 'strava-sync' ? (
+                        <ActivityIndicator size={11} color={colors.brandInk} />
+                      ) : (
+                        <Text style={s.syncBtnText}>SINCRONIZAR</Text>
+                      )}
+                    </Pressable>
+                  )}
                 </View>
               ) : (
                 <Pressable
                   style={s.connectBtn}
-                  onPress={connectStrava}
+                  onPress={isApple ? connectAppleHealth : connectStrava}
                   disabled={loadingId !== null}
                 >
-                  {loadingId === 'strava-connect' ? (
+                  {loadingId === (isApple ? 'apple_health' : 'strava-connect') ? (
                     <ActivityIndicator size={13} color={colors.brand} />
                   ) : (
                     <Text style={s.connectBtnText}>CONECTAR</Text>
