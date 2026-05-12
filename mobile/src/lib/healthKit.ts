@@ -6,7 +6,9 @@ let AppleHealthKit: typeof import('react-native-health').default | null = null;
 
 if (Platform.OS === 'ios') {
   try {
-    AppleHealthKit = require('react-native-health').default;
+    // module.exports = HealthKit (não é default export)
+
+    AppleHealthKit = require('react-native-health');
   } catch {
     // package not installed — degrade gracefully
   }
