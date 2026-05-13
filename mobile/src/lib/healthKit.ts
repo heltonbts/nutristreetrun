@@ -1,49 +1,33 @@
+// @kingstinct/react-native-healthkit — NitroModules-based, New Architecture compatible
+// iOS only; all exported functions are no-ops on Android / when unavailable
+import type * as HKTypes from '@kingstinct/react-native-healthkit';
 import { Platform } from 'react-native';
 
-// react-native-health is iOS only. Install: npm install react-native-health + pod install
-
-let AppleHealthKit: typeof import('react-native-health').default | null = null;
+let HK: typeof HKTypes | null = null;
 
 if (Platform.OS === 'ios') {
   try {
-    // module.exports = HealthKit (não é default export)
-
-    AppleHealthKit = require('react-native-health');
+    HK = require('@kingstinct/react-native-healthkit') as typeof HKTypes;
   } catch {
-    // package not installed — degrade gracefully
+    // package not linked — degrade gracefully
   }
 }
 
-const PERMISSIONS = () => ({
-  permissions: {
-    read: [
-      AppleHealthKit!.Constants.Permissions.Workout,
-      AppleHealthKit!.Constants.Permissions.HeartRate,
-      AppleHealthKit!.Constants.Permissions.ActiveEnergyBurned,
-    ],
-    write: [AppleHealthKit!.Constants.Permissions.Workout],
-  },
-});
-
-let _initialized = false;
-
-export async function initHealthKit(): Promise<boolean> {
-  if (!AppleHealthKit) return false;
-  if (_initialized) return true;
-
-  return new Promise((resolve) => {
-    AppleHealthKit!.initHealthKit(PERMISSIONS(), (err) => {
-      if (!err) _initialized = true;
-      resolve(!err);
+export async function requestHealthKitPermissions(): Promise<boolean> {
+  if (!HK) return false;
+  try {
+    await HK.requestAuthorization({
+      toRead: ['HKQuantityTypeIdentifierHeartRate', 'HKQuantityTypeIdentifierActiveEnergyBurned'],
+      toShare: ['HKWorkoutTypeIdentifier'],
     });
-  });
+    return true;
+  } catch {
+    return false;
+  }
 }
 
-// Force re-request permissions (for the "Connect Apple Health" button)
-export async function requestHealthKitPermissions(): Promise<boolean> {
-  if (!AppleHealthKit) return false;
-  _initialized = false;
-  return initHealthKit();
+export async function initHealthKit(): Promise<boolean> {
+  return requestHealthKitPermissions();
 }
 
 export async function saveRunToHealth(params: {
@@ -51,95 +35,70 @@ export async function saveRunToHealth(params: {
   durationSeconds: number;
   distanceKm: number;
 }): Promise<void> {
-  if (!AppleHealthKit) return;
-  const ok = await initHealthKit();
-  if (!ok) return;
-
-  const endDate = new Date(params.startedAt.getTime() + params.durationSeconds * 1000);
-
-  return new Promise((resolve) => {
-    // react-native-health types are incomplete — distance/energy are supported at runtime
-
-    AppleHealthKit!.saveWorkout(
-      {
-        type: AppleHealthKit!.Constants.Activities.Running,
-        startDate: params.startedAt.toISOString(),
-        endDate: endDate.toISOString(),
-        distance: params.distanceKm,
-        distanceUnit: 'kilometer',
-        energyBurned: Math.round(params.distanceKm * 70),
-        energyBurnedUnit: 'calorie',
-      } as any,
-      () => resolve(),
-    );
-  });
+  if (!HK) return;
+  try {
+    const endDate = new Date(params.startedAt.getTime() + params.durationSeconds * 1000);
+    await HK.saveWorkoutSample(HK.WorkoutActivityType.running, [], params.startedAt, endDate, {
+      distance: params.distanceKm * 1000,
+      energyBurned: Math.round(params.distanceKm * 70),
+    });
+  } catch {
+    // silently fail — don't block saving the run
+  }
 }
 
-// Latest HR sample in the last 2 minutes — for real-time display during run
 export async function getLatestHeartRate(): Promise<number | null> {
-  if (!AppleHealthKit) return null;
-  const ok = await initHealthKit();
-  if (!ok) return null;
-
-  const now = new Date();
-  const from = new Date(now.getTime() - 2 * 60 * 1000);
-
-  return new Promise((resolve) => {
-    AppleHealthKit!.getHeartRateSamples(
-      { startDate: from.toISOString(), endDate: now.toISOString(), ascending: false, limit: 1 },
-      (err, results) => {
-        if (err || !results?.length) {
-          resolve(null);
-          return;
-        }
-        resolve(Math.round(results[0].value));
-      },
-    );
-  });
+  if (!HK) return null;
+  try {
+    const now = new Date();
+    const from = new Date(now.getTime() - 2 * 60 * 1000);
+    const samples = await HK.queryQuantitySamples('HKQuantityTypeIdentifierHeartRate', {
+      filter: { date: { startDate: from, endDate: now } },
+      limit: 1,
+      ascending: false,
+      unit: 'count/min',
+    });
+    if (!samples.length) return null;
+    return Math.round(samples[0].quantity);
+  } catch {
+    return null;
+  }
 }
 
-// Avg + max HR for the workout duration — called after finishing
 export async function getHeartRateStats(
   from: Date,
   to: Date,
 ): Promise<{ avg: number | null; max: number | null }> {
-  if (!AppleHealthKit) return { avg: null, max: null };
-  const ok = await initHealthKit();
-  if (!ok) return { avg: null, max: null };
-
-  return new Promise((resolve) => {
-    AppleHealthKit!.getHeartRateSamples(
-      { startDate: from.toISOString(), endDate: to.toISOString(), ascending: true },
-      (err, results) => {
-        if (err || !results?.length) {
-          resolve({ avg: null, max: null });
-          return;
-        }
-        const values = results.map((r) => r.value);
-        const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
-        const max = Math.round(Math.max(...values));
-        resolve({ avg, max });
-      },
-    );
-  });
+  if (!HK) return { avg: null, max: null };
+  try {
+    const samples = await HK.queryQuantitySamples('HKQuantityTypeIdentifierHeartRate', {
+      filter: { date: { startDate: from, endDate: to } },
+      limit: -1,
+      ascending: true,
+      unit: 'count/min',
+    });
+    if (!samples.length) return { avg: null, max: null };
+    const values = samples.map((s) => s.quantity);
+    const avg = Math.round(values.reduce((a, b) => a + b, 0) / values.length);
+    const max = Math.round(Math.max(...values));
+    return { avg, max };
+  } catch {
+    return { avg: null, max: null };
+  }
 }
 
-// Active energy burned from Apple Watch for the workout duration
 export async function getCaloriesBurned(from: Date, to: Date): Promise<number> {
-  if (!AppleHealthKit) return 0;
-  const ok = await initHealthKit();
-  if (!ok) return 0;
-
-  return new Promise((resolve) => {
-    AppleHealthKit!.getActiveEnergyBurned(
-      { startDate: from.toISOString(), endDate: to.toISOString(), ascending: false },
-      (err, results) => {
-        if (err || !results?.length) {
-          resolve(0);
-          return;
-        }
-        resolve(Math.round(results.reduce((sum, r) => sum + r.value, 0)));
-      },
-    );
-  });
+  if (!HK) return 0;
+  try {
+    const samples = await HK.queryQuantitySamples('HKQuantityTypeIdentifierActiveEnergyBurned', {
+      filter: { date: { startDate: from, endDate: to } },
+      limit: -1,
+      ascending: false,
+      unit: 'kcal',
+    });
+    if (!samples.length) return 0;
+    return Math.round(samples.reduce((sum, s) => sum + s.quantity, 0));
+  } catch {
+    return 0;
+  }
 }
