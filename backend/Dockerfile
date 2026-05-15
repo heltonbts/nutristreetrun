@@ -11,8 +11,8 @@ COPY . .
 
 RUN npx prisma generate
 
-RUN npm run build && echo "=== dist contents ===" && ls -la dist/ && echo "=== dist/main.js ===" && ls dist/main.js
+RUN npm run build
 
 EXPOSE 3000
 
-CMD ["node", "dist/main"]
+CMD ["node", "dist/src/main"]
