@@ -1,4 +1,4 @@
-FROM node:22-alpine AS builder
+FROM node:22-alpine
 
 WORKDIR /app
 
@@ -10,19 +10,8 @@ RUN npm ci
 COPY . .
 
 RUN npx prisma generate
-RUN npm run build
 
-FROM node:22-alpine AS runner
-
-WORKDIR /app
-
-COPY --from=builder /app/package*.json ./
-COPY --from=builder /app/prisma ./prisma/
-COPY --from=builder /app/dist ./dist/
-COPY --from=builder /app/node_modules/.prisma ./node_modules/.prisma/
-COPY --from=builder /app/node_modules/@prisma ./node_modules/@prisma/
-
-RUN npm ci --omit=dev
+RUN npm run build && echo "=== dist contents ===" && ls -la dist/ && echo "=== dist/main.js ===" && ls dist/main.js
 
 EXPOSE 3000
 
