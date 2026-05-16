@@ -223,7 +223,7 @@ export default function HomeScreen() {
             <View style={s.heroTop}>
               <View style={s.syncChip}>
                 <View style={s.syncDot} />
-                <Text style={s.syncText}>STRAVA · HEALTH SYNC</Text>
+                <Text style={s.syncText}>GPS · HEALTH SYNC</Text>
               </View>
               <Text style={s.monthLabel}>{monthLabel()}</Text>
             </View>
@@ -341,7 +341,7 @@ export default function HomeScreen() {
           <View style={s.heroTop}>
             <View style={s.syncChip}>
               <View style={s.syncDot} />
-              <Text style={s.syncText}>STRAVA · HEALTH SYNC</Text>
+              <Text style={s.syncText}>GPS · HEALTH SYNC</Text>
             </View>
             <Text style={s.monthLabel}>{monthLabel()}</Text>
           </View>
