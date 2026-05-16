@@ -1,6 +1,7 @@
+import polylineCodec from '@mapbox/polyline';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
@@ -16,6 +17,7 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import MapView, { Polyline, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenTransition } from '../../src/components/ScreenTransition';
@@ -39,6 +41,8 @@ type ActivityData = {
   title: string;
   distanceKm: number;
   pace: string | null;
+  durationSec: number | null;
+  routePolyline: string | null;
   startedAt: string;
   reactions: Reaction[];
   commentsCount: number;
@@ -76,6 +80,45 @@ function timeAgo(iso: string): string {
   if (diff < 86400) return `${Math.floor(diff / 3600)}h`;
   if (diff < 604800) return `${Math.floor(diff / 86400)}d`;
   return new Date(iso).toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' });
+}
+
+function fmtDuration(sec: number): string {
+  const h = Math.floor(sec / 3600);
+  const m = Math.floor((sec % 3600) / 60);
+  const s = Math.floor(sec % 60);
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
+}
+
+type LatLng = { latitude: number; longitude: number };
+
+// Decodifica o polyline (Google) e calcula a região que enquadra o traçado.
+function decodeRoute(encoded: string): { coords: LatLng[]; region: Region | null } {
+  let pairs: [number, number][] = [];
+  try {
+    pairs = polylineCodec.decode(encoded);
+  } catch {
+    return { coords: [], region: null };
+  }
+  if (pairs.length < 2) return { coords: [], region: null };
+  const coords = pairs.map(([latitude, longitude]) => ({ latitude, longitude }));
+  let minLat = coords[0].latitude;
+  let maxLat = coords[0].latitude;
+  let minLng = coords[0].longitude;
+  let maxLng = coords[0].longitude;
+  for (const c of coords) {
+    minLat = Math.min(minLat, c.latitude);
+    maxLat = Math.max(maxLat, c.latitude);
+    minLng = Math.min(minLng, c.longitude);
+    maxLng = Math.max(maxLng, c.longitude);
+  }
+  const region: Region = {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLng + maxLng) / 2,
+    latitudeDelta: Math.max((maxLat - minLat) * 1.4, 0.005),
+    longitudeDelta: Math.max((maxLng - minLng) * 1.4, 0.005),
+  };
+  return { coords, region };
 }
 
 function initials(name: string): string {
@@ -198,6 +241,15 @@ function UserHeader({ user, time }: { user: FeedUser; time: string }) {
 
 // ─── ActivityCard ─────────────────────────────────────────────────────────────
 
+function ActivityStat({ value, label }: { value: string; label: string }) {
+  return (
+    <View style={s.actStat}>
+      <Text style={s.actStatValue}>{value}</Text>
+      <Text style={s.actStatLabel}>{label}</Text>
+    </View>
+  );
+}
+
 function ActivityCard({
   item,
   onComments,
@@ -205,32 +257,50 @@ function ActivityCard({
   item: ActivityData;
   onComments: (type: 'activity' | 'post', id: string) => void;
 }) {
+  const route = useMemo(
+    () => (item.routePolyline ? decodeRoute(item.routePolyline) : { coords: [], region: null }),
+    [item.routePolyline],
+  );
+
   return (
     <View style={s.card}>
       <UserHeader user={item.user} time={timeAgo(item.startedAt)} />
 
-      <View style={s.activityBody}>
-        <View style={s.activityIconWrap}>
-          <Text style={s.activityIcon}>🏃</Text>
-        </View>
-        <View style={s.activityInfo}>
-          <Text style={s.activityTitle} numberOfLines={1}>
-            {item.title}
-          </Text>
-          <View style={s.activityStats}>
-            <Text style={s.activityKm}>
-              {item.distanceKm.toFixed(1)}
-              <Text style={s.activityUnit}> km</Text>
-            </Text>
-            {item.pace ? (
-              <>
-                <Text style={s.activityDot}>·</Text>
-                <Text style={s.activityPace}>{item.pace}/km</Text>
-              </>
-            ) : null}
-          </View>
-        </View>
+      <View style={s.actHead}>
+        <Text style={s.actKicker}>CORRIDA</Text>
+        <Text style={s.actName} numberOfLines={1}>
+          {item.title}
+        </Text>
       </View>
+
+      <View style={s.actStatsRow}>
+        <ActivityStat value={`${item.distanceKm.toFixed(2)}`} label="km" />
+        <View style={s.actStatDivider} />
+        <ActivityStat
+          value={item.durationSec != null ? fmtDuration(item.durationSec) : '—'}
+          label="Tempo"
+        />
+        <View style={s.actStatDivider} />
+        <ActivityStat value={item.pace ?? '—'} label="Pace /km" />
+      </View>
+
+      {route.region && route.coords.length > 1 ? (
+        <View style={s.actMapWrap} pointerEvents="none">
+          <MapView
+            style={s.actMap}
+            region={route.region}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            toolbarEnabled={false}
+            loadingEnabled
+            loadingBackgroundColor={colors.card}
+          >
+            <Polyline coordinates={route.coords} strokeColor={colors.brand} strokeWidth={4} />
+          </MapView>
+        </View>
+      ) : null}
 
       <ReactionBar
         targetType="activity"
@@ -714,6 +784,54 @@ const s = StyleSheet.create({
     padding: 14,
     gap: 10,
   },
+  actHead: { gap: 2 },
+  actKicker: {
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.brand,
+    letterSpacing: 2,
+  },
+  actName: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 26,
+    color: colors.text,
+    lineHeight: 28,
+    letterSpacing: 0.4,
+  },
+  actStatsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 4,
+  },
+  actStat: { flex: 1, alignItems: 'flex-start' },
+  actStatDivider: {
+    width: 1,
+    height: 28,
+    backgroundColor: colors.line,
+    marginHorizontal: 12,
+  },
+  actStatValue: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 26,
+    color: colors.text,
+    lineHeight: 28,
+    letterSpacing: 0.4,
+  },
+  actStatLabel: {
+    fontFamily: font.body,
+    fontSize: 11,
+    color: colors.textMute,
+    marginTop: 1,
+  },
+  actMapWrap: {
+    height: 180,
+    borderRadius: 12,
+    overflow: 'hidden',
+    borderWidth: 1,
+    borderColor: colors.line,
+    backgroundColor: colors.bg,
+  },
+  actMap: { flex: 1 },
   cardUserRow: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   cardUserInfo: { flex: 1 },
   cardUserName: {

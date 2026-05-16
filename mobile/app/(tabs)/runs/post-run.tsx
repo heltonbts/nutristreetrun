@@ -57,6 +57,7 @@ export default function PostRunScreen() {
     distanceKm: string;
     durationSeconds: string;
     startedAt: string;
+    routePolyline?: string;
     avgHeartRate?: string;
     maxHeartRate?: string;
     calories?: string;
@@ -103,6 +104,7 @@ export default function PostRunScreen() {
         durationSeconds,
         startedAt: startedAt.toISOString(),
         title: title.trim() || defaultTitle,
+        ...(params.routePolyline && { routePolyline: params.routePolyline }),
         ...(avgHeartRate && { avgHeartRate }),
         ...(maxHeartRate && { maxHeartRate }),
         ...(calories > 0 && { caloriesBurned: calories }),

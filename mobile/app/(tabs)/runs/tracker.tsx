@@ -1,3 +1,4 @@
+import polylineCodec from '@mapbox/polyline';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import * as Location from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
@@ -561,12 +562,15 @@ export default function TrackerScreen() {
       return;
     }
     const elevation = elevationGainM(coords);
+    const routePolyline =
+      coords.length > 1 ? polylineCodec.encode(coords.map((c) => [c.lat, c.lng])) : '';
     router.push({
       pathname: '/(tabs)/runs/post-run',
       params: {
         distanceKm: String(distKm),
         durationSeconds: String(elapsedSec),
         startedAt: startedAtRef.current!.toISOString(),
+        ...(routePolyline && { routePolyline }),
         ...(hrStats.avg && { avgHeartRate: String(hrStats.avg) }),
         ...(hrStats.max && { maxHeartRate: String(hrStats.max) }),
         ...(hrStats.calories > 0 && { calories: String(hrStats.calories) }),
