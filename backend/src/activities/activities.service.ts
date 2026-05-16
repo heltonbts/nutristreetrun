@@ -44,6 +44,8 @@ export class ActivitiesService {
         counts,
         skipReason,
         startedAt,
+        durationSec: Math.round(dto.durationSeconds),
+        routePolyline: dto.routePolyline || undefined,
         avgHeartRate: dto.avgHeartRate,
         maxHeartRate: dto.maxHeartRate,
         caloriesBurned: dto.caloriesBurned

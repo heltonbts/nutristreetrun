@@ -26,6 +26,8 @@ interface ActivityItem {
     title: string;
     distanceKm: number;
     pace: string | null;
+    durationSec: number | null;
+    routePolyline: string | null;
     startedAt: Date;
     reactions: ReactionSummary[];
     commentsCount: number;
@@ -250,6 +252,8 @@ export class FeedService {
           title: a.title,
           distanceKm: a.distanceKm,
           pace: a.pace,
+          durationSec: a.durationSec,
+          routePolyline: a.routePolyline,
           startedAt: a.startedAt,
           reactions: buildReactions(actRxMap, myActRxMap, a.id),
           commentsCount: totalCmt,

@@ -41,6 +41,14 @@ export class CreateActivityDto {
   @IsDateString()
   startedAt?: string;
 
+  @ApiPropertyOptional({
+    description: 'Traçado GPS encodado (Google polyline)',
+    example: 'ate~F|zviO...',
+  })
+  @IsOptional()
+  @IsString()
+  routePolyline?: string;
+
   @ApiPropertyOptional({ example: 148 })
   @IsOptional()
   @IsInt()
