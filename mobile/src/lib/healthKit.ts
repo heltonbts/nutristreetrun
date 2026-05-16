@@ -17,7 +17,11 @@ export async function requestHealthKitPermissions(): Promise<boolean> {
   if (!HK) return false;
   try {
     await HK.requestAuthorization({
-      toRead: ['HKQuantityTypeIdentifierHeartRate', 'HKQuantityTypeIdentifierActiveEnergyBurned'],
+      toRead: [
+        'HKQuantityTypeIdentifierHeartRate',
+        'HKQuantityTypeIdentifierActiveEnergyBurned',
+        'HKQuantityTypeIdentifierStepCount',
+      ],
       toShare: ['HKWorkoutTypeIdentifier'],
     });
     return true;
@@ -95,6 +99,22 @@ export async function getCaloriesBurned(from: Date, to: Date): Promise<number> {
       limit: -1,
       ascending: false,
       unit: 'kcal',
+    });
+    if (!samples.length) return 0;
+    return Math.round(samples.reduce((sum, s) => sum + s.quantity, 0));
+  } catch {
+    return 0;
+  }
+}
+
+export async function getStepCount(from: Date, to: Date): Promise<number> {
+  if (!HK) return 0;
+  try {
+    const samples = await HK.queryQuantitySamples('HKQuantityTypeIdentifierStepCount', {
+      filter: { date: { startDate: from, endDate: to } },
+      limit: -1,
+      ascending: false,
+      unit: 'count',
     });
     if (!samples.length) return 0;
     return Math.round(samples.reduce((sum, s) => sum + s.quantity, 0));

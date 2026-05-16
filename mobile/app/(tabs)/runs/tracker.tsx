@@ -23,6 +23,7 @@ import {
   getCaloriesBurned,
   getHeartRateStats,
   getLatestHeartRate,
+  getStepCount,
 } from '../../../src/lib/healthKit';
 import { endRunActivity, startRunActivity, updateRunActivity } from '../../../src/lib/liveActivity';
 import { colors, font } from '../../../src/lib/tokens';
@@ -82,6 +83,19 @@ function currentPaceSec(coords: TrackedCoord[]): number | null {
 function avgPaceSec(distKm: number, elapsedSec: number): number | null {
   if (distKm < 0.01) return null;
   return elapsedSec / distKm;
+}
+
+// Sum positive altitude deltas between consecutive coords (in meters).
+// GPS altitude is noisy, so we only count rises ≥ 1m to filter jitter.
+function elevationGainM(coords: TrackedCoord[]): number {
+  let gain = 0;
+  let lastAlt: number | null = null;
+  for (const c of coords) {
+    if (c.alt == null) continue;
+    if (lastAlt != null && c.alt > lastAlt + 1) gain += c.alt - lastAlt;
+    lastAlt = c.alt;
+  }
+  return Math.round(gain);
 }
 
 function fmtPace(sec: number | null): string {
@@ -159,6 +173,7 @@ export default function TrackerScreen() {
     max: number | null;
     calories: number;
   }>({ avg: null, max: null, calories: 0 });
+  const [stepsCount, setStepsCount] = useState(0);
   const [mapType, setMapType] = useState<MapType>('standard');
   const [splits, setSplits] = useState<Split[]>([]);
   const [countdown, setCountdown] = useState<number | null>(null);
@@ -310,6 +325,7 @@ export default function TrackerScreen() {
         setElapsedSec(0);
         setSplits([]);
         setHrStats({ avg: null, max: null, calories: 0 });
+        setStepsCount(0);
         setNewBestPace(false);
         splitKmRef.current = 1;
         splitStartTimeRef.current = 0;
@@ -525,11 +541,13 @@ export default function TrackerScreen() {
           endedAtRef.current = new Date();
           setStatus('finished');
           if (startedAtRef.current) {
-            const [stats, cal] = await Promise.all([
+            const [stats, cal, steps] = await Promise.all([
               getHeartRateStats(startedAtRef.current, endedAtRef.current!),
               getCaloriesBurned(startedAtRef.current, endedAtRef.current!),
+              getStepCount(startedAtRef.current, endedAtRef.current!),
             ]);
             setHrStats({ avg: stats.avg, max: stats.max, calories: cal });
+            setStepsCount(steps);
           }
         },
       },
@@ -542,6 +560,7 @@ export default function TrackerScreen() {
       Alert.alert('Corrida muito curta', 'Percorra pelo menos 100 metros para salvar.');
       return;
     }
+    const elevation = elevationGainM(coords);
     router.push({
       pathname: '/(tabs)/runs/post-run',
       params: {
@@ -551,6 +570,8 @@ export default function TrackerScreen() {
         ...(hrStats.avg && { avgHeartRate: String(hrStats.avg) }),
         ...(hrStats.max && { maxHeartRate: String(hrStats.max) }),
         ...(hrStats.calories > 0 && { calories: String(hrStats.calories) }),
+        ...(elevation > 0 && { elevationGain: String(elevation) }),
+        ...(stepsCount > 0 && { steps: String(stepsCount) }),
       },
     });
   }

@@ -60,6 +60,8 @@ export default function PostRunScreen() {
     avgHeartRate?: string;
     maxHeartRate?: string;
     calories?: string;
+    elevationGain?: string;
+    steps?: string;
   }>();
   const router = useRouter();
   const insets = useSafeAreaInsets();
@@ -71,6 +73,8 @@ export default function PostRunScreen() {
   const avgHeartRate = params.avgHeartRate ? parseInt(params.avgHeartRate, 10) : null;
   const maxHeartRate = params.maxHeartRate ? parseInt(params.maxHeartRate, 10) : null;
   const calories = params.calories ? parseInt(params.calories, 10) : 0;
+  const elevationGain = params.elevationGain ? parseInt(params.elevationGain, 10) : 0;
+  const steps = params.steps ? parseInt(params.steps, 10) : 0;
 
   const defaultTitle = `Corrida de ${weekdays[startedAt.getDay()]}`;
   const [title, setTitle] = useState(defaultTitle);
@@ -156,13 +160,17 @@ export default function PostRunScreen() {
 
         <View style={s.metricsGrid}>
           <Metric value={distanceKm.toFixed(2)} unit="km" label="Distância" />
-          <Metric value={fmtTime(durationSeconds)} label="Tempo" />
+          <Metric value={fmtTime(durationSeconds)} label="Tempo movimento" />
           <Metric value={fmtPace(paceSec)} label="Pace médio" />
+          {elevationGain > 0 ? (
+            <Metric value={String(elevationGain)} unit="m" label="Ganho elevação" />
+          ) : null}
+          {steps > 0 ? <Metric value={steps.toLocaleString('pt-BR')} label="Passos" /> : null}
+          {calories > 0 ? <Metric value={String(calories)} unit="kcal" label="Calorias" /> : null}
           {avgHeartRate ? (
             <Metric value={String(avgHeartRate)} unit="bpm" label="FC média" />
           ) : null}
           {maxHeartRate ? <Metric value={String(maxHeartRate)} unit="bpm" label="FC máx" /> : null}
-          {calories > 0 ? <Metric value={String(calories)} unit="kcal" label="Calorias" /> : null}
         </View>
 
         <Section title="COMO VOCÊ SE SENTIU?">
