@@ -1,0 +1,118 @@
+import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+
+import { colors, font } from '../lib/tokens';
+import { TabIcon } from './TabIcon';
+
+type TabName = 'home' | 'ranking' | 'feed' | 'runs' | 'profile';
+
+const ROUTE_MAP: Record<string, { icon: TabName; label: string }> = {
+  index: { icon: 'home', label: 'Home' },
+  ranking: { icon: 'ranking', label: 'Ranking' },
+  feed: { icon: 'feed', label: 'Feed' },
+  runs: { icon: 'runs', label: 'Corridas' },
+  profile: { icon: 'profile', label: 'Perfil' },
+};
+
+export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+  const insets = useSafeAreaInsets();
+  const barBottom = Math.max(insets.bottom, 8) + 8;
+
+  // Hide tab bar when tracker screen is active
+  const currentTabRoute = state.routes[state.index];
+  const nestedRoutes = currentTabRoute.state?.routes;
+  const nestedIndex = currentTabRoute.state?.index ?? 0;
+  const currentNestedRoute = nestedRoutes?.[nestedIndex];
+  if (currentNestedRoute?.name === 'tracker') return null;
+
+  return (
+    <View style={[s.wrapper, { bottom: barBottom }]}>
+      {/* Glass layers */}
+      <View style={[StyleSheet.absoluteFill, s.glassDark]} />
+      <View style={[StyleSheet.absoluteFill, s.glassTint]} />
+      <View style={s.glassHighlight} />
+      <View style={[StyleSheet.absoluteFill, s.glassBorder]} />
+
+      {/* Tab items */}
+      {state.routes.map((route, index) => {
+        const focused = state.index === index;
+        const meta = ROUTE_MAP[route.name];
+        if (!meta) return null;
+
+        const activeColor = colors.brand;
+        const inactiveColor = 'rgba(236,239,238,0.38)';
+        const color = focused ? activeColor : inactiveColor;
+
+        return (
+          <Pressable
+            key={route.key}
+            style={s.item}
+            onPress={() => {
+              const event = navigation.emit({
+                type: 'tabPress',
+                target: route.key,
+                canPreventDefault: true,
+              });
+              if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
+            }}
+            onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
+          >
+            <TabIcon name={meta.icon} color={color} focused={focused} />
+            <Text style={[s.label, { color }]}>{meta.label}</Text>
+          </Pressable>
+        );
+      })}
+    </View>
+  );
+}
+
+const s = StyleSheet.create({
+  wrapper: {
+    position: 'absolute',
+    left: 24,
+    right: 24,
+    height: 68,
+    borderRadius: 36,
+    flexDirection: 'row',
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 12 },
+    shadowOpacity: 0.45,
+    shadowRadius: 28,
+    elevation: 24,
+  },
+  glassDark: {
+    backgroundColor: 'rgba(14,18,17,0.82)',
+    borderRadius: 36,
+  },
+  glassTint: {
+    backgroundColor: 'rgba(95,184,168,0.04)',
+    borderRadius: 36,
+  },
+  glassHighlight: {
+    position: 'absolute',
+    top: 0,
+    left: 32,
+    right: 32,
+    height: 0.5,
+    backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  glassBorder: {
+    borderRadius: 36,
+    borderWidth: 0.5,
+    borderColor: 'rgba(255,255,255,0.10)',
+  },
+  item: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 3,
+  },
+  label: {
+    fontFamily: font.bodyBold,
+    fontSize: 9,
+    letterSpacing: 0.6,
+    textTransform: 'uppercase',
+  },
+});

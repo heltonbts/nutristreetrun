@@ -196,7 +196,7 @@ export default function ProfileScreen() {
     <ScreenTransition>
       <ScrollView
         style={s.root}
-        contentContainerStyle={{ paddingBottom: 32 + insets.bottom }}
+        contentContainerStyle={{ paddingBottom: 96 + insets.bottom }}
         showsVerticalScrollIndicator={false}
       >
         {/* Header com gradiente */}

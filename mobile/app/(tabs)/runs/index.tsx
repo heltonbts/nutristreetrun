@@ -1,5 +1,4 @@
 import { useQuery } from '@tanstack/react-query';
-import * as Notifications from 'expo-notifications';
 import { useRouter } from 'expo-router';
 import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
@@ -21,14 +20,17 @@ const TEST_NOTIFICATIONS = [
 ];
 
 async function fireTestNotification(idx: number) {
-  await Notifications.scheduleNotificationAsync({
-    content: {
-      title: TEST_NOTIFICATIONS[idx].title,
-      body: TEST_NOTIFICATIONS[idx].body,
-      sound: 'default',
-    },
-    trigger: null,
-  });
+  try {
+    const Notifications = require('expo-notifications');
+    await Notifications.scheduleNotificationAsync({
+      content: {
+        title: TEST_NOTIFICATIONS[idx].title,
+        body: TEST_NOTIFICATIONS[idx].body,
+        sound: 'default',
+      },
+      trigger: null,
+    });
+  } catch {}
 }
 
 interface Activity {
@@ -377,7 +379,7 @@ export default function RunsScreen() {
 
       {/* FAB — start a new run */}
       <Pressable
-        style={[s.fab, { bottom: insets.bottom + 24 }]}
+        style={[s.fab, { bottom: Math.max(insets.bottom, 8) + 8 + 68 + 12 }]}
         onPress={() => router.push('/runs/tracker')}
       >
         <Text style={s.fabText}>CORRER</Text>

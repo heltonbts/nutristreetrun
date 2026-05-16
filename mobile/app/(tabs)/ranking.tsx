@@ -180,7 +180,7 @@ export default function RankingScreen() {
         ) : (
           <ScrollView
             style={s.list}
-            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 32 + insets.bottom }}
+            contentContainerStyle={{ paddingHorizontal: 20, paddingBottom: 96 + insets.bottom }}
             showsVerticalScrollIndicator={false}
           >
             {data?.myPos != null && <Text style={s.myPos}>Você está em {data.myPos}º lugar</Text>}

@@ -207,7 +207,7 @@ export default function HomeScreen() {
   if (!c) {
     return (
       <ScreenTransition>
-        <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 32 }}>
+        <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}>
           {/* Hero vazio */}
           <View style={[s.hero, { paddingTop: insets.top + 16 }]}>
             <Svg width={W} height={260} style={StyleSheet.absoluteFill} pointerEvents="none">
@@ -323,7 +323,7 @@ export default function HomeScreen() {
 
   return (
     <ScreenTransition>
-      <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: 32 }}>
+      <ScrollView style={s.screen} contentContainerStyle={{ paddingBottom: insets.bottom + 96 }}>
         {/* ── HERO BANNER ── */}
         <View style={[s.hero, { paddingTop: insets.top + 16 }]}>
           {/* Radial gradient background */}

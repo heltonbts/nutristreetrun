@@ -1,8 +1,11 @@
+import { View } from 'react-native';
 import { Circle, Path, Rect, Svg } from 'react-native-svg';
+
+import { colors } from '../lib/tokens';
 
 type TabName = 'home' | 'ranking' | 'feed' | 'runs' | 'profile';
 
-export function TabIcon({ name, color }: { name: TabName; color: string }) {
+function Icon({ name, color }: { name: TabName; color: string }) {
   switch (name) {
     case 'home':
       return (
@@ -62,4 +65,33 @@ export function TabIcon({ name, color }: { name: TabName; color: string }) {
         </Svg>
       );
   }
+}
+
+export function TabIcon({
+  name,
+  color,
+  focused,
+}: {
+  name: TabName;
+  color: string;
+  focused: boolean;
+}) {
+  return (
+    <View style={{ alignItems: 'center', justifyContent: 'center' }}>
+      {focused && (
+        <View
+          style={{
+            position: 'absolute',
+            width: 44,
+            height: 44,
+            borderRadius: 22,
+            backgroundColor: `${colors.brand}22`,
+            borderWidth: 0.5,
+            borderColor: `${colors.brand}55`,
+          }}
+        />
+      )}
+      <Icon name={name} color={focused ? colors.brand : color} />
+    </View>
+  );
 }

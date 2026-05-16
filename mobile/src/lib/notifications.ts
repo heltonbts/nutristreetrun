@@ -1,12 +1,17 @@
-import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 
 import { api } from './api';
 
+// expo-notifications remote push was removed from Expo Go in SDK 53; guard to avoid crash
+let Notifications: typeof import('expo-notifications') | null = null;
+try {
+  Notifications = require('expo-notifications');
+} catch {}
+
 export function setupNotificationHandlers() {
+  if (!Notifications) return;
   Notifications.setNotificationHandler({
     handleNotification: async () => ({
-      shouldShowAlert: true,
       shouldShowBanner: true,
       shouldShowList: true,
       shouldPlaySound: true,
@@ -16,7 +21,7 @@ export function setupNotificationHandlers() {
 }
 
 export async function registerForPushNotifications(): Promise<void> {
-  if (Platform.OS === 'web') return;
+  if (Platform.OS === 'web' || !Notifications) return;
 
   const { status: existing } = await Notifications.getPermissionsAsync();
   let status = existing;
