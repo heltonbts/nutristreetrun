@@ -1,8 +1,9 @@
-import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
+import { MaterialTopTabBarProps } from '@react-navigation/material-top-tabs';
 import { useEffect, useRef } from 'react';
 import { Animated, Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { isFullscreenRoute } from '../lib/navRoutes';
 import { colors, font } from '../lib/tokens';
 import { TabIcon } from './TabIcon';
 
@@ -21,11 +22,7 @@ const ROUTE_MAP: Record<string, { icon: TabName; label: string }> = {
   profile: { icon: 'profile', label: 'Perfil' },
 };
 
-// Telas empilhadas dentro de uma aba que ocupam tela cheia.
-// Nomes = nome do arquivo da rota (expo-router): runs/[id].tsx → '[id]'.
-const HIDE_TAB_BAR_ROUTES = new Set(['tracker', '[id]', 'charts']);
-
-export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
+export function FloatingTabBar({ state, navigation }: MaterialTopTabBarProps) {
   const insets = useSafeAreaInsets();
   const barBottom = Math.max(insets.bottom, 8) + 8;
 
@@ -51,7 +48,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const nestedRoutes = currentTabRoute.state?.routes;
   const nestedIndex = currentTabRoute.state?.index ?? 0;
   const currentNestedRoute = nestedRoutes?.[nestedIndex];
-  if (currentNestedRoute && HIDE_TAB_BAR_ROUTES.has(currentNestedRoute.name)) return null;
+  if (isFullscreenRoute(currentNestedRoute?.name)) return null;
 
   return (
     <View style={[s.wrapper, { bottom: barBottom }]}>
@@ -89,7 +86,6 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
               });
               if (!focused && !event.defaultPrevented) navigation.navigate(route.name);
             }}
-            onLongPress={() => navigation.emit({ type: 'tabLongPress', target: route.key })}
           >
             <TabIcon name={meta.icon} color={color} focused={focused} />
             <Text style={[s.label, { color }]}>{meta.label}</Text>
