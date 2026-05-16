@@ -76,21 +76,9 @@ export function TabIcon({
   color: string;
   focused: boolean;
 }) {
+  // O destaque (pill) é renderizado e animado no FloatingTabBar.
   return (
     <View style={{ alignItems: 'center', justifyContent: 'center' }}>
-      {focused && (
-        <View
-          style={{
-            position: 'absolute',
-            width: 44,
-            height: 44,
-            borderRadius: 22,
-            backgroundColor: `${colors.brand}22`,
-            borderWidth: 0.5,
-            borderColor: `${colors.brand}55`,
-          }}
-        />
-      )}
       <Icon name={name} color={focused ? colors.brand : color} />
     </View>
   );

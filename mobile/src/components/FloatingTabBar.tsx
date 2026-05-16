@@ -1,9 +1,15 @@
 import { BottomTabBarProps } from '@react-navigation/bottom-tabs';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef } from 'react';
+import { Animated, Dimensions, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { colors, font } from '../lib/tokens';
 import { TabIcon } from './TabIcon';
+
+const BAR_INSET = 24; // left/right do wrapper
+const BAR_HEIGHT = 68;
+const PILL = 44;
+const SCREEN_W = Dimensions.get('window').width;
 
 type TabName = 'home' | 'ranking' | 'feed' | 'runs' | 'profile';
 
@@ -23,6 +29,22 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
   const insets = useSafeAreaInsets();
   const barBottom = Math.max(insets.bottom, 8) + 8;
 
+  // Posição do pill deslizante: cada aba ocupa um slot de largura igual.
+  const slot = (SCREEN_W - BAR_INSET * 2) / state.routes.length;
+  const pillX = (i: number) => i * slot + (slot - PILL) / 2;
+  const indicatorX = useRef(new Animated.Value(pillX(state.index))).current;
+
+  useEffect(() => {
+    Animated.spring(indicatorX, {
+      toValue: pillX(state.index),
+      useNativeDriver: true,
+      friction: 9,
+      tension: 90,
+    }).start();
+    // pillX depende só de slot (constante por render) — index é o gatilho real
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [state.index, slot]);
+
   // Esconde a tab bar nas telas full-screen empilhadas (não na raiz da aba),
   // onde a barra flutuante atrapalharia o conteúdo (detalhe, gráficos, tracker).
   const currentTabRoute = state.routes[state.index];
@@ -39,6 +61,12 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
       <View style={s.glassHighlight} />
       <View style={[StyleSheet.absoluteFill, s.glassBorder]} />
 
+      {/* Pill deslizante — destaque único que faz spring entre as abas */}
+      <Animated.View
+        pointerEvents="none"
+        style={[s.pill, { transform: [{ translateX: indicatorX }] }]}
+      />
+
       {/* Tab items */}
       {state.routes.map((route, index) => {
         const focused = state.index === index;
@@ -52,7 +80,7 @@ export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarP
         return (
           <Pressable
             key={route.key}
-            style={s.item}
+            style={({ pressed }) => [s.item, pressed && { transform: [{ scale: 0.86 }] }]}
             onPress={() => {
               const event = navigation.emit({
                 type: 'tabPress',
@@ -102,6 +130,17 @@ const s = StyleSheet.create({
     right: 32,
     height: 0.5,
     backgroundColor: 'rgba(255,255,255,0.22)',
+  },
+  pill: {
+    position: 'absolute',
+    width: PILL,
+    height: PILL,
+    top: (BAR_HEIGHT - PILL) / 2,
+    left: 0,
+    borderRadius: PILL / 2,
+    backgroundColor: `${colors.brand}22`,
+    borderWidth: 0.5,
+    borderColor: `${colors.brand}55`,
   },
   glassBorder: {
     borderRadius: 36,
