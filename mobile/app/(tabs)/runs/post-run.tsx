@@ -114,10 +114,10 @@ export default function PostRunScreen() {
         Alert.alert(
           '🏆 Novo recorde!',
           `Você bateu seu melhor pace pessoal: ${fmtPace(paceSec)}/km`,
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)/runs') }],
+          [{ text: 'OK', onPress: () => router.replace('/(tabs)/feed') }],
         );
       } else {
-        router.replace('/(tabs)/runs');
+        router.replace('/(tabs)/feed');
       }
     } catch {
       Alert.alert('Erro', 'Não foi possível salvar a corrida. Tente novamente.');

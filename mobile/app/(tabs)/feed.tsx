@@ -1,4 +1,5 @@
 import * as ImagePicker from 'expo-image-picker';
+import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
@@ -582,6 +583,13 @@ export default function FeedScreen() {
     initialized.current = true;
     initialLoad();
   }
+
+  // Refresh feed silently when the tab gains focus (e.g. after saving a run)
+  useFocusEffect(
+    useCallback(() => {
+      if (initialized.current) void loadPage(1, true);
+    }, [loadPage]),
+  );
 
   const renderItem = useCallback(({ item }: { item: FeedItem }) => {
     if (item.type === 'activity') {
