@@ -1,37 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import {
+  ActivityIndicator,
+  Animated,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenTransition } from '../../../src/components/ScreenTransition';
 import { api } from '../../../src/lib/api';
 import { colors, font } from '../../../src/lib/tokens';
-
-const TEST_NOTIFICATIONS = [
-  {
-    title: '⚡ Novo recorde pessoal!',
-    body: 'Você bateu seu melhor pace: 4\'32"/km. Continue assim!',
-  },
-  { title: '🔥 Metade do caminho!', body: '30.5km de 60km. Você está na metade da meta!' },
-  {
-    title: '🏆 Meta alcançada!',
-    body: 'Você completou os 60km do DESAFIO 60K! Sua medalha está a caminho.',
-  },
-];
-
-async function fireTestNotification(idx: number) {
-  try {
-    const Notifications = require('expo-notifications');
-    await Notifications.scheduleNotificationAsync({
-      content: {
-        title: TEST_NOTIFICATIONS[idx].title,
-        body: TEST_NOTIFICATIONS[idx].body,
-        sound: 'default',
-      },
-      trigger: null,
-    });
-  } catch {}
-}
 
 interface Activity {
   id: string;
@@ -243,6 +226,31 @@ function StatBox({ value, unit, label }: { value: string; unit?: string; label: 
   );
 }
 
+function StartRunCard({ subtitle, onPress }: { subtitle: string; onPress: () => void }) {
+  return (
+    <Pressable
+      style={({ pressed }) => [
+        s.heroCard,
+        pressed && { opacity: 0.92, transform: [{ scale: 0.99 }] },
+      ]}
+      onPress={onPress}
+      accessibilityRole="button"
+      accessibilityLabel="Iniciar corrida"
+    >
+      <View style={s.heroPlay}>
+        <Text style={s.heroPlayIcon}>▶</Text>
+      </View>
+      <View style={s.heroTextWrap}>
+        <Text style={s.heroTitle}>CORRER AGORA</Text>
+        <Text style={s.heroSub} numberOfLines={1}>
+          {subtitle}
+        </Text>
+      </View>
+      <Text style={s.heroChevron}>›</Text>
+    </Pressable>
+  );
+}
+
 export default function RunsScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
@@ -286,8 +294,29 @@ export default function RunsScreen() {
 
   const pct = profile?.challenge?.pct ?? 0;
   const goalKm = profile?.challenge?.goalKm ?? 0;
+  const remainingKm = Math.max(0, goalKm - totalKm);
+  const challengeTitle = profile?.challenge?.title ?? '';
+
+  const heroSub = !profile
+    ? 'Inicie o rastreamento por GPS'
+    : remainingKm <= 0
+      ? 'Meta batida! Bora manter o ritmo 🔥'
+      : `Faltam ${remainingKm.toFixed(1)} km${challengeTitle ? ` pro ${challengeTitle}` : ' pra meta'}`;
 
   const isLoading = loadingActs || loadingProfile;
+
+  // Botão flutuante: aparece só quando o card hero sai da tela.
+  // Histerese (200 pra mostrar, 140 pra esconder) evita piscar perto do limite.
+  const [showFab, setShowFab] = useState(false);
+  const fabAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    Animated.timing(fabAnim, {
+      toValue: showFab ? 1 : 0,
+      duration: 180,
+      useNativeDriver: true,
+    }).start();
+  }, [showFab, fabAnim]);
 
   return (
     <ScreenTransition>
@@ -295,6 +324,11 @@ export default function RunsScreen() {
         style={s.root}
         contentContainerStyle={{ paddingBottom: insets.bottom + 90 }}
         showsVerticalScrollIndicator={false}
+        scrollEventThrottle={32}
+        onScroll={(e) => {
+          const y = e.nativeEvent.contentOffset.y;
+          setShowFab((prev) => (prev ? y > 140 : y > 200));
+        }}
       >
         {/* Header */}
         <View style={[s.header, { paddingTop: insets.top + 12 }]}>
@@ -302,17 +336,8 @@ export default function RunsScreen() {
           <Text style={s.screenTitle}>MINHAS CORRIDAS</Text>
         </View>
 
-        {/* DEBUG — remover antes do submit */}
-        <View style={s.debugPanel}>
-          <Text style={s.debugLabel}>🔔 TESTAR NOTIFICAÇÕES</Text>
-          <View style={s.debugRow}>
-            {TEST_NOTIFICATIONS.map((n, i) => (
-              <Pressable key={i} style={s.debugBtn} onPress={() => fireTestNotification(i)}>
-                <Text style={s.debugBtnText}>{n.title.split(' ')[0]}</Text>
-              </Pressable>
-            ))}
-          </View>
-        </View>
+        {/* Ação principal — iniciar corrida */}
+        <StartRunCard subtitle={heroSub} onPress={() => router.push('/runs/tracker')} />
 
         {isLoading ? (
           <View style={s.loading}>
@@ -377,13 +402,30 @@ export default function RunsScreen() {
         )}
       </ScrollView>
 
-      {/* FAB — start a new run */}
-      <Pressable
-        style={[s.fab, { bottom: Math.max(insets.bottom, 8) + 8 + 68 + 12 }]}
-        onPress={() => router.push('/runs/tracker')}
+      {/* Botão flutuante — só visível quando o card hero saiu da tela */}
+      <Animated.View
+        pointerEvents={showFab ? 'auto' : 'none'}
+        style={[
+          s.fabFloatWrap,
+          { bottom: Math.max(insets.bottom, 8) + 8 + 68 + 12 },
+          {
+            opacity: fabAnim,
+            transform: [
+              { scale: fabAnim.interpolate({ inputRange: [0, 1], outputRange: [0.6, 1] }) },
+              { translateY: fabAnim.interpolate({ inputRange: [0, 1], outputRange: [16, 0] }) },
+            ],
+          },
+        ]}
       >
-        <Text style={s.fabText}>CORRER</Text>
-      </Pressable>
+        <Pressable
+          style={({ pressed }) => [s.fabFloatBtn, pressed && { opacity: 0.85 }]}
+          onPress={() => router.push('/runs/tracker')}
+          accessibilityRole="button"
+          accessibilityLabel="Iniciar corrida"
+        >
+          <Text style={s.fabFloatIcon}>▶</Text>
+        </Pressable>
+      </Animated.View>
     </ScreenTransition>
   );
 }
@@ -618,50 +660,64 @@ const s = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 18,
   },
-  debugPanel: {
+  heroCard: {
     marginHorizontal: 20,
-    marginBottom: 12,
-    padding: 12,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: 'rgba(255,200,0,0.3)',
-    backgroundColor: 'rgba(255,200,0,0.06)',
-    gap: 10,
-  },
-  debugLabel: {
-    fontFamily: font.bodyBold,
-    fontSize: 10,
-    color: 'rgba(255,200,0,0.8)',
-    letterSpacing: 1,
-  },
-  debugRow: { flexDirection: 'row', gap: 8 },
-  debugBtn: {
-    flex: 1,
-    backgroundColor: 'rgba(255,200,0,0.12)',
-    borderRadius: 8,
-    paddingVertical: 10,
+    marginTop: 14,
+    marginBottom: 8,
+    flexDirection: 'row',
     alignItems: 'center',
-    borderWidth: 1,
-    borderColor: 'rgba(255,200,0,0.2)',
-  },
-  debugBtnText: { fontFamily: font.bodyBold, fontSize: 18 },
-  fab: {
-    position: 'absolute',
-    alignSelf: 'center',
+    gap: 14,
+    paddingVertical: 18,
+    paddingHorizontal: 18,
+    borderRadius: 20,
     backgroundColor: colors.brand,
-    borderRadius: 32,
-    paddingHorizontal: 32,
-    paddingVertical: 16,
     shadowColor: colors.brand,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 12,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
     elevation: 8,
   },
-  fabText: {
-    fontFamily: 'BebasNeue_400Regular',
-    fontSize: 20,
-    color: colors.brandInk,
-    letterSpacing: 3,
+  heroPlay: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: 'rgba(0,0,0,0.18)',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
+  heroPlayIcon: { color: colors.brandInk, fontSize: 17, marginLeft: 3 },
+  heroTextWrap: { flex: 1, minWidth: 0 },
+  heroTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 26,
+    lineHeight: 28,
+    color: colors.brandInk,
+    letterSpacing: 1.5,
+  },
+  heroSub: {
+    fontFamily: font.bodyBold,
+    fontSize: 12,
+    color: colors.brandInk,
+    opacity: 0.75,
+    marginTop: 1,
+  },
+  heroChevron: { color: colors.brandInk, fontSize: 26, opacity: 0.55, marginLeft: 2 },
+  fabFloatWrap: {
+    position: 'absolute',
+    alignSelf: 'center',
+  },
+  fabFloatBtn: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.brand,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: colors.brand,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.45,
+    shadowRadius: 14,
+    elevation: 10,
+  },
+  fabFloatIcon: { color: colors.brandInk, fontSize: 22, marginLeft: 3 },
 });
