@@ -1,6 +1,14 @@
 import { useQuery } from '@tanstack/react-query';
 import { useState } from 'react';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  ActivityIndicator,
+  Image,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ScreenTransition } from '../../src/components/ScreenTransition';
@@ -33,6 +41,7 @@ interface RunnerItem {
   pos: number;
   name: string;
   initials: string;
+  avatarUrl: string | null;
   isMe: boolean;
   km: number;
 }
@@ -60,12 +69,22 @@ function avatarColor(initials: string) {
   return AVATAR_COLORS[code % AVATAR_COLORS.length];
 }
 
-function Avatar({ initials, size = 36 }: { initials: string; size?: number }) {
+function Avatar({
+  initials,
+  avatarUrl,
+  size = 36,
+}: {
+  initials: string;
+  avatarUrl?: string | null;
+  size?: number;
+}) {
+  const dim = { width: size, height: size, borderRadius: size / 2 };
+  if (avatarUrl) {
+    return <Image source={{ uri: avatarUrl }} style={[s.avatar, dim]} />;
+  }
   const bg = avatarColor(initials);
   return (
-    <View
-      style={[s.avatar, { width: size, height: size, borderRadius: size / 2, backgroundColor: bg }]}
-    >
+    <View style={[s.avatar, dim, { backgroundColor: bg }]}>
       <Text style={[s.avatarText, { fontSize: size * 0.36 }]}>{initials}</Text>
     </View>
   );
@@ -83,7 +102,7 @@ function RunnerRow({ item }: { item: RunnerItem }) {
       >
         {item.pos}
       </Text>
-      <Avatar initials={item.initials} size={36} />
+      <Avatar initials={item.initials} avatarUrl={item.avatarUrl} size={36} />
       <View style={s.rowMid}>
         <Text style={[s.rowName, { color: me ? colors.brandInk : colors.text }]} numberOfLines={1}>
           {item.name}

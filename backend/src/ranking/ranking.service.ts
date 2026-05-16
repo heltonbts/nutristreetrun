@@ -54,20 +54,21 @@ export class RankingService {
       {
         userId: string;
         name: string;
+        avatarUrl: string | null;
         assessoria: string | null;
         city: string | null;
         state: string | null;
         doneKm: number;
       }[]
     >`
-      SELECT u.id AS "userId", u.name, u.assessoria, u.city, u.state,
+      SELECT u.id AS "userId", u.name, u."avatarUrl", u.assessoria, u.city, u.state,
              COALESCE(SUM(CASE WHEN a.counts THEN a."distanceKm" ELSE 0 END), 0)::float AS "doneKm"
       FROM "User" u
       LEFT JOIN "Activity" a ON a."userId" = u.id
         AND a."startedAt" >= ${challenge.startsAt}
         AND a."startedAt" <= ${challenge.endsAt}
       WHERE u.${col} = ${filterValue}
-      GROUP BY u.id, u.name, u.assessoria, u.city, u.state
+      GROUP BY u.id, u.name, u."avatarUrl", u.assessoria, u.city, u.state
       ORDER BY "doneKm" DESC
     `;
 
@@ -75,6 +76,7 @@ export class RankingService {
       pos: i + 1,
       name: r.name,
       initials: initials(r.name),
+      avatarUrl: r.avatarUrl,
       assessoria: r.assessoria,
       city: r.city,
       km: Math.round(r.doneKm * 10) / 10,
