@@ -14,7 +14,6 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ProfileModule } from './profile/profile.module';
 import { RankingModule } from './ranking/ranking.module';
 import { SocialModule } from './social/social.module';
-import { StravaModule } from './strava/strava.module';
 
 @Module({
   imports: [
@@ -30,7 +29,6 @@ import { StravaModule } from './strava/strava.module';
     HomeModule,
     ChallengesModule,
     ActivitiesModule,
-    StravaModule,
     RankingModule,
     ProfileModule,
     FeedModule,

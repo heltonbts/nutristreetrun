@@ -32,7 +32,6 @@ model User {
 
   activities       Activity[]
   userChallenges   UserChallenge[]
-  stravaConnection StravaConnection?
   posts            Post[]
   reactions        Reaction[]
   comments         Comment[]
@@ -72,19 +71,6 @@ enum MedalStatus {
   SHIPPED
   DELIVERED
   MISSED
-}
-
-model StravaConnection {
-  id           String   @id @default(cuid())
-  userId       String   @unique
-  stravaId     Int      @unique
-  accessToken  String
-  refreshToken String
-  expiresAt    DateTime
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
-
-  user User @relation(fields: [userId], references: [id])
 }
 
 model Post {
@@ -130,7 +116,7 @@ model Comment {
 model Activity {
   id         String   @id @default(cuid())
   userId     String
-  stravaId   Int?     @unique
+  stravaId   Int?     @unique // legado: integração Strava removida
   title      String
   distanceKm Float
   pace       String?
@@ -138,6 +124,8 @@ model Activity {
   counts         Boolean  @default(true)
   skipReason     String?
   startedAt      DateTime
+  durationSec    Int?
+  routePolyline  String? // traçado GPS encodado (Google polyline) — feed/detalhe
   avgHeartRate   Int?
   maxHeartRate   Int?
   caloriesBurned Float?

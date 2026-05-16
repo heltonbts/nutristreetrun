@@ -16,9 +16,8 @@ export class ProfileService {
   async getProfile(userId: string) {
     const now = new Date();
 
-    const [user, stravaConn, challenge] = await Promise.all([
+    const [user, challenge] = await Promise.all([
       this.prisma.user.findUniqueOrThrow({ where: { id: userId } }),
-      this.prisma.stravaConnection.findUnique({ where: { userId } }),
       this.prisma.challenge.findFirst({
         where: { startsAt: { lte: now }, endsAt: { gte: now } },
       }),
@@ -111,9 +110,6 @@ export class ProfileService {
         deliveryCity: user.deliveryCity,
         deliveryState: user.deliveryState,
       },
-      strava: stravaConn
-        ? { connected: true, stravaId: stravaConn.stravaId }
-        : { connected: false, stravaId: null },
       challenge: challengeData,
       medals,
       stats: { totalMedals, totalKm, monthsActive },

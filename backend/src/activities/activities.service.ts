@@ -2,14 +2,12 @@ import { Injectable } from '@nestjs/common';
 
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
-import { StravaDetailActivity, StravaService } from '../strava/strava.service';
 import { CreateActivityDto } from './dto/create-activity.dto';
 
 @Injectable()
 export class ActivitiesService {
   constructor(
     private prisma: PrismaService,
-    private stravaService: StravaService,
     private notificationsService: NotificationsService,
   ) {}
 
@@ -354,21 +352,8 @@ export class ActivitiesService {
       };
     }
 
-    let stravaDetail: StravaDetailActivity | null = null;
-    if (activity.stravaId) {
-      try {
-        stravaDetail = await this.stravaService.getActivityDetail(
-          userId,
-          activity.stravaId,
-        );
-      } catch {
-        // Strava not connected or API error — return local data only
-      }
-    }
-
     return {
       ...activity,
-      strava: stravaDetail,
       challenge: challengeData,
     };
   }
