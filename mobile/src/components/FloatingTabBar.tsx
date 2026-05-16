@@ -15,16 +15,21 @@ const ROUTE_MAP: Record<string, { icon: TabName; label: string }> = {
   profile: { icon: 'profile', label: 'Perfil' },
 };
 
+// Telas empilhadas dentro de uma aba que ocupam tela cheia.
+// Nomes = nome do arquivo da rota (expo-router): runs/[id].tsx → '[id]'.
+const HIDE_TAB_BAR_ROUTES = new Set(['tracker', '[id]', 'charts']);
+
 export function FloatingTabBar({ state, descriptors, navigation }: BottomTabBarProps) {
   const insets = useSafeAreaInsets();
   const barBottom = Math.max(insets.bottom, 8) + 8;
 
-  // Hide tab bar when tracker screen is active
+  // Esconde a tab bar nas telas full-screen empilhadas (não na raiz da aba),
+  // onde a barra flutuante atrapalharia o conteúdo (detalhe, gráficos, tracker).
   const currentTabRoute = state.routes[state.index];
   const nestedRoutes = currentTabRoute.state?.routes;
   const nestedIndex = currentTabRoute.state?.index ?? 0;
   const currentNestedRoute = nestedRoutes?.[nestedIndex];
-  if (currentNestedRoute?.name === 'tracker') return null;
+  if (currentNestedRoute && HIDE_TAB_BAR_ROUTES.has(currentNestedRoute.name)) return null;
 
   return (
     <View style={[s.wrapper, { bottom: barBottom }]}>
