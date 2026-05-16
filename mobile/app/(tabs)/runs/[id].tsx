@@ -6,15 +6,6 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { api } from '../../../src/lib/api';
 import { colors, font } from '../../../src/lib/tokens';
 
-interface StravaSplit {
-  split: number;
-  distance: number;
-  moving_time: number;
-  elevation_difference: number;
-  average_speed: number;
-  average_heartrate?: number;
-}
-
 interface ActivityDetail {
   id: string;
   title: string;
@@ -24,30 +15,10 @@ interface ActivityDetail {
   counts: boolean;
   skipReason: string | null;
   startedAt: string;
-  stravaId: number | null;
+  durationSec: number | null;
   avgHeartRate: number | null;
   maxHeartRate: number | null;
   caloriesBurned: number | null;
-  strava: {
-    distance: number;
-    moving_time: number;
-    elapsed_time: number;
-    total_elevation_gain: number;
-    average_speed: number;
-    max_speed: number;
-    average_cadence?: number;
-    average_heartrate?: number;
-    max_heartrate?: number;
-    calories?: number;
-    suffer_score?: number;
-    achievement_count: number;
-    kudos_count: number;
-    comment_count: number;
-    description?: string;
-    type: string;
-    sport_type: string;
-    splits_metric?: StravaSplit[];
-  } | null;
   challenge: {
     title: string;
     goalKm: number;
@@ -64,22 +35,6 @@ function formatDuration(seconds: number): string {
   const s = Math.round(seconds % 60);
   if (h > 0) return `${h}h ${String(m).padStart(2, '0')}min`;
   return `${m}min ${String(s).padStart(2, '0')}s`;
-}
-
-function speedToPace(mps: number): string {
-  if (!mps || mps <= 0) return '—';
-  const secPerKm = 1000 / mps;
-  const m = Math.floor(secPerKm / 60);
-  const s = Math.round(secPerKm % 60);
-  return `${m}'${String(s).padStart(2, '0')}"`;
-}
-
-function splitPaceColor(mps: number, avgMps: number): string {
-  if (!mps || !avgMps) return colors.text;
-  const ratio = mps / avgMps;
-  if (ratio >= 1.03) return colors.success;
-  if (ratio <= 0.97) return colors.danger;
-  return colors.text;
 }
 
 function formatDate(iso: string): string {
@@ -125,20 +80,14 @@ export default function RunDetailScreen() {
     enabled: !!id,
   });
 
-  const st = data?.strava ?? null;
   const ch = data?.challenge ?? null;
 
-  const distanceKm = st ? st.distance / 1000 : (data?.distanceKm ?? 0);
-  const movingTime = st?.moving_time ?? 0;
-  const pace = data?.pace ?? (st ? speedToPace(st.average_speed) : '—');
-  const elevation = st?.total_elevation_gain ?? 0;
-  const avgHr = st?.average_heartrate ?? data?.avgHeartRate ?? null;
-  const maxHr = st?.max_heartrate ?? data?.maxHeartRate ?? null;
-  const cadence = st?.average_cadence ? Math.round(st.average_cadence * 2) : null;
-  const calories = st?.calories ?? data?.caloriesBurned ?? null;
-  const sufferScore = st?.suffer_score;
-  const maxSpeedPace = st ? speedToPace(st.max_speed) : null;
-  const splits = st?.splits_metric ?? [];
+  const distanceKm = data?.distanceKm ?? 0;
+  const movingTime = data?.durationSec ?? 0;
+  const pace = data?.pace ?? '—';
+  const avgHr = data?.avgHeartRate ?? null;
+  const maxHr = data?.maxHeartRate ?? null;
+  const calories = data?.caloriesBurned ?? null;
 
   return (
     <ScrollView
@@ -178,7 +127,6 @@ export default function RunDetailScreen() {
             <Text style={s.actTitle} numberOfLines={2}>
               {data.title}
             </Text>
-            {data.source === 'Strava' && <Text style={s.sourceTag}>via Strava</Text>}
             {!data.counts && data.skipReason ? (
               <View style={s.skipBanner}>
                 <Text style={s.skipText}>⚠ {data.skipReason}</Text>
@@ -211,91 +159,24 @@ export default function RunDetailScreen() {
             <Text style={s.sectionTitle}>DETALHES</Text>
             <View style={s.statsGrid}>
               <StatItem
-                value={elevation > 0 ? `+${Math.round(elevation)}` : '—'}
-                unit={elevation > 0 ? 'm' : undefined}
-                label="Ganho de elevação"
+                value={avgHr ? String(Math.round(avgHr)) : '—'}
+                unit={avgHr ? 'bpm' : undefined}
+                label="FC média"
               />
-              {avgHr ? (
-                <StatItem value={String(Math.round(avgHr))} unit="bpm" label="FC média" />
-              ) : (
-                <StatItem value="—" label="FC média" />
-              )}
-              {maxHr ? (
-                <StatItem value={String(Math.round(maxHr))} unit="bpm" label="FC máxima" />
-              ) : (
-                <StatItem value="—" label="FC máxima" />
-              )}
-              {cadence ? (
-                <StatItem value={String(cadence)} unit="ppm" label="Cadência" />
-              ) : (
-                <StatItem value="—" label="Cadência" />
-              )}
-              {calories ? (
-                <StatItem
-                  value={String(Math.round(calories))}
-                  unit="kcal"
-                  label="Calorias"
-                  accent
-                />
-              ) : (
-                <StatItem value="—" label="Calorias" />
-              )}
-              {maxSpeedPace ? <StatItem value={maxSpeedPace} label="Pace máximo" /> : null}
-              {sufferScore ? <StatItem value={String(sufferScore)} label="Sofrimento" /> : null}
-              {st && st.kudos_count > 0 ? (
-                <StatItem value={String(st.kudos_count)} label="Kudos no Strava" />
-              ) : null}
-              {st && st.achievement_count > 0 ? (
-                <StatItem value={String(st.achievement_count)} label="Conquistas" accent />
-              ) : null}
+              <StatItem
+                value={maxHr ? String(Math.round(maxHr)) : '—'}
+                unit={maxHr ? 'bpm' : undefined}
+                label="FC máxima"
+              />
+              <StatItem
+                value={calories ? String(Math.round(calories)) : '—'}
+                unit={calories ? 'kcal' : undefined}
+                label="Calorias"
+                accent={!!calories}
+              />
+              <StatItem value={pace} label="Pace médio / km" />
             </View>
           </View>
-
-          {/* Splits */}
-          {splits.length > 0 && (
-            <View style={s.section}>
-              <Text style={s.sectionTitle}>SPLITS POR KM</Text>
-              <View style={s.splitsCard}>
-                <View style={s.splitsHeader}>
-                  <Text style={[s.splitCol, s.splitHeaderText]}>KM</Text>
-                  <Text style={[s.splitColMid, s.splitHeaderText]}>PACE</Text>
-                  <Text style={[s.splitColRight, s.splitHeaderText]}>ELEVAÇÃO</Text>
-                  {splits[0]?.average_heartrate ? (
-                    <Text style={[s.splitColRight, s.splitHeaderText]}>FC</Text>
-                  ) : null}
-                </View>
-                {splits.map((sp, i) => {
-                  const isLast = i === splits.length - 1;
-                  return (
-                    <View key={sp.split} style={[s.splitRow, isLast && s.splitRowLast]}>
-                      <Text style={s.splitCol}>{sp.split}</Text>
-                      <Text
-                        style={[
-                          s.splitColMid,
-                          s.splitPace,
-                          {
-                            color: splitPaceColor(sp.average_speed, st?.average_speed ?? 0),
-                          },
-                        ]}
-                      >
-                        {speedToPace(sp.average_speed)}
-                      </Text>
-                      <Text style={[s.splitColRight, s.splitElev]}>
-                        {sp.elevation_difference >= 0
-                          ? `+${Math.round(sp.elevation_difference)}m`
-                          : `${Math.round(sp.elevation_difference)}m`}
-                      </Text>
-                      {sp.average_heartrate ? (
-                        <Text style={[s.splitColRight, s.splitHr]}>
-                          {Math.round(sp.average_heartrate)}
-                        </Text>
-                      ) : null}
-                    </View>
-                  );
-                })}
-              </View>
-            </View>
-          )}
 
           {/* Challenge card */}
           {ch && (
@@ -339,16 +220,6 @@ export default function RunDetailScreen() {
               </View>
             </View>
           )}
-
-          {/* Strava description */}
-          {st?.description ? (
-            <View style={s.section}>
-              <Text style={s.sectionTitle}>DESCRIÇÃO</Text>
-              <View style={s.descCard}>
-                <Text style={s.descText}>{st.description}</Text>
-              </View>
-            </View>
-          ) : null}
         </>
       )}
     </ScrollView>

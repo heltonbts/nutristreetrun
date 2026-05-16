@@ -18,7 +18,7 @@ const BENEFITS = [
     t: 'Ranking real',
     d: 'Compita por cidade, estado e assessoria. Ranking atualiza em tempo real.',
   },
-  { t: 'Sync automático', d: 'Strava + Apple Health + Google Fit. Você corre, a gente conta.' },
+  { t: 'GPS integrado', d: 'Rastreamento por GPS + Apple Health. Você corre, a gente conta.' },
   { t: 'Feed da comunidade', d: 'Veja o que sua assessoria e seus pares estão fazendo.' },
   { t: 'Conteúdo NutriSilva', d: 'Acesso ao ecossistema do nutricionista esportivo Dr. Silva.' },
 ];

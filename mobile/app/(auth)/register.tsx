@@ -3,10 +3,8 @@ import { Link } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
   ActivityIndicator,
-  Alert,
   Animated,
   KeyboardAvoidingView,
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -55,52 +53,8 @@ function AnimatedButton({
   );
 }
 
-function AppCard({
-  color,
-  name,
-  desc,
-  onPress,
-  actionLabel,
-  disabled,
-  loading,
-}: {
-  color: string;
-  name: string;
-  desc: string;
-  onPress?: () => void;
-  actionLabel?: string;
-  disabled?: boolean;
-  loading?: boolean;
-}) {
-  return (
-    <View style={[ac.card, disabled && ac.cardDisabled]}>
-      <View style={[ac.badge, { backgroundColor: color }]}>
-        <Text style={ac.badgeLetter}>{name[0]}</Text>
-      </View>
-      <View style={{ flex: 1 }}>
-        <Text style={ac.name}>{name}</Text>
-        <Text style={ac.desc}>{desc}</Text>
-      </View>
-      {!disabled && onPress && (
-        <Pressable style={ac.action} onPress={onPress} disabled={loading}>
-          {loading ? (
-            <ActivityIndicator size="small" color={colors.brand} />
-          ) : (
-            <Text style={ac.actionText}>{actionLabel}</Text>
-          )}
-        </Pressable>
-      )}
-      {disabled && (
-        <View style={ac.soon}>
-          <Text style={ac.soonText}>EM BREVE</Text>
-        </View>
-      )}
-    </View>
-  );
-}
-
 export default function RegisterScreen() {
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2>(1);
 
   // Step 1
   const [name, setName] = useState('');
@@ -118,8 +72,6 @@ export default function RegisterScreen() {
 
   const [error, setError] = useState('');
   const [loading, setLoading] = useState(false);
-  const [stravaLoading, setStravaLoading] = useState(false);
-  const [pendingToken, setPendingToken] = useState<string | null>(null);
 
   const phoneRef = useRef<PhoneInput>(null);
   const setToken = useAuthStore((s) => s.setToken);
@@ -154,8 +106,7 @@ export default function RegisterScreen() {
         ...(state.trim() && { state: state.trim().toUpperCase().slice(0, 2) }),
         ...(assessoria.trim() && { assessoria: assessoria.trim() }),
       });
-      setPendingToken(data.access_token);
-      setStep(3);
+      await setToken(data.access_token);
     } catch (err) {
       if (axios.isAxiosError(err)) {
         const msg = err.response?.data?.message;
@@ -166,26 +117,6 @@ export default function RegisterScreen() {
     } finally {
       setLoading(false);
     }
-  }
-
-  async function handleConnectStrava() {
-    if (!pendingToken) return;
-    setStravaLoading(true);
-    try {
-      const { data } = await api.get<{ url: string }>('/auth/strava/url', {
-        headers: { Authorization: `Bearer ${pendingToken}` },
-      });
-      await Linking.openURL(data.url);
-    } catch (err) {
-      Alert.alert('Erro ao conectar Strava', String(err));
-    } finally {
-      setStravaLoading(false);
-    }
-  }
-
-  async function handleEnterApp() {
-    if (!pendingToken) return;
-    await setToken(pendingToken);
   }
 
   return (
@@ -292,7 +223,7 @@ export default function RegisterScreen() {
               >
                 <Text style={s.backText}>← Voltar</Text>
               </Pressable>
-              <Text style={s.kicker}>PASSO 2 DE 3</Text>
+              <Text style={s.kicker}>PASSO 2 DE 2</Text>
               <Text style={s.title2}>SUA{'\n'}ASSESSORIA</Text>
               <Text style={s.subtitle}>
                 Pertence a uma assessoria de corrida?{'\n'}Inclua-a no ranking gratuitamente.
@@ -337,46 +268,6 @@ export default function RegisterScreen() {
               <Pressable onPress={handleCreateAccount} style={s.linkBtn}>
                 <Text style={s.link}>Pular esta etapa</Text>
               </Pressable>
-            </View>
-          </>
-        )}
-
-        {/* ── STEP 3: SYNC ── */}
-        {step === 3 && (
-          <>
-            <View style={s.header}>
-              <Text style={s.kicker}>QUASE LÁ · PASSO 3 DE 3</Text>
-              <Text style={s.title2}>CONECTE{'\n'}SEUS APPS</Text>
-              <Text style={s.subtitle}>Suas corridas serão sincronizadas automaticamente.</Text>
-            </View>
-            <View style={s.form}>
-              <AppCard
-                color="#FC4C02"
-                name="Strava"
-                desc="Sincroniza corridas automaticamente"
-                onPress={handleConnectStrava}
-                actionLabel="CONECTAR"
-                loading={stravaLoading}
-              />
-              <AppCard
-                color="#FA2D48"
-                name="Apple Health"
-                desc="Disponível no app completo"
-                disabled
-              />
-              <AppCard
-                color="#4285F4"
-                name="Google Fit"
-                desc="Disponível no app completo"
-                disabled
-              />
-              <View style={s.divider} />
-              <AnimatedButton
-                onPress={handleEnterApp}
-                disabled={!pendingToken}
-                loading={false}
-                label="ENTRAR NO APP"
-              />
             </View>
           </>
         )}
@@ -458,46 +349,4 @@ const s = StyleSheet.create({
   linkBtn: { alignItems: 'center', marginTop: 8 },
   link: { fontFamily: font.body, fontSize: 14, color: colors.textDim },
   divider: { height: 1, backgroundColor: colors.line, marginVertical: 4 },
-});
-
-const ac = StyleSheet.create({
-  card: {
-    backgroundColor: colors.card,
-    borderWidth: 1,
-    borderColor: colors.line,
-    borderRadius: 14,
-    padding: 14,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  cardDisabled: { opacity: 0.5 },
-  badge: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexShrink: 0,
-  },
-  badgeLetter: { fontFamily: 'BebasNeue_400Regular', fontSize: 22, color: 'white', lineHeight: 22 },
-  name: { fontFamily: font.bodyBold, fontSize: 14, color: colors.text },
-  desc: { fontFamily: font.body, fontSize: 11, color: colors.textMute, marginTop: 2 },
-  action: {
-    borderWidth: 1,
-    borderColor: colors.brand,
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    flexShrink: 0,
-  },
-  actionText: { fontFamily: font.bodyBold, fontSize: 11, color: colors.brand, letterSpacing: 0.8 },
-  soon: {
-    backgroundColor: 'rgba(255,255,255,0.06)',
-    borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-    flexShrink: 0,
-  },
-  soonText: { fontFamily: font.bodyBold, fontSize: 9, color: colors.textMute, letterSpacing: 0.8 },
 });

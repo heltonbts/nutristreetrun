@@ -39,7 +39,7 @@ function fmtDate(iso: string) {
 }
 
 function fmtSource(src: string) {
-  if (src === 'STRAVA') return 'Strava';
+  if (src === 'STRAVA') return 'Importada';
   if (src === 'HEALTH') return 'Apple Health';
   return src;
 }

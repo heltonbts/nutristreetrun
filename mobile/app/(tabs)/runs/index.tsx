@@ -36,7 +36,6 @@ interface Challenge {
 
 interface ProfileData {
   challenge: Challenge;
-  strava: { connected: boolean };
 }
 
 interface Summary {
@@ -368,18 +367,6 @@ export default function RunsScreen() {
               </View>
             )}
 
-            {/* Sync banner */}
-            {profile?.strava?.connected && (
-              <View style={s.syncBanner}>
-                <View style={s.syncDot} />
-                <View style={s.syncInfo}>
-                  <Text style={s.syncTitle}>Sincronizando com Strava</Text>
-                  <Text style={s.syncSub}>Atividades importadas automaticamente</Text>
-                </View>
-                <Text style={s.syncOk}>OK</Text>
-              </View>
-            )}
-
             {/* History */}
             <View style={s.sectionHeader}>
               <Text style={s.sectionKicker}>{monthLabel}</Text>
@@ -393,7 +380,7 @@ export default function RunsScreen() {
                 <View style={s.empty}>
                   <Text style={s.emptyText}>Nenhuma atividade este mês.</Text>
                   <Text style={s.emptyHint}>
-                    Conecte o Strava no Perfil para importar automaticamente.
+                    Toque em CORRER para registrar sua primeira corrida.
                   </Text>
                 </View>
               )}

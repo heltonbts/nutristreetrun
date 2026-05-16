@@ -18,7 +18,6 @@ import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
 import { AddressScreen } from '../../src/screens/AddressScreen';
-import { ConnectionsScreen } from '../../src/screens/ConnectionsScreen';
 import { EditProfileScreen } from '../../src/screens/EditProfileScreen';
 import { MedalsScreen } from '../../src/screens/MedalsScreen';
 import { SubscribeScreen } from '../../src/screens/SubscribeScreen';
@@ -37,7 +36,6 @@ interface ProfileData {
     weightKg: number | null;
     heightCm: number | null;
   };
-  strava: { connected: boolean; stravaId: number | null };
   challenge: {
     title: string;
     goalKm: number;
@@ -96,11 +94,9 @@ export default function ProfileScreen() {
   const logout = useAuthStore((s) => s.logout);
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
-  const [syncing, setSyncing] = useState(false);
   const [showMedals, setShowMedals] = useState(false);
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showAddress, setShowAddress] = useState(false);
-  const [showConnections, setShowConnections] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false);
 
   const { data, isLoading } = useQuery<ProfileData>({
@@ -149,19 +145,6 @@ export default function ProfileScreen() {
       Alert.alert('Erro', 'Não foi possível enviar a foto.');
     } finally {
       setUploading(false);
-    }
-  }
-
-  async function syncStrava() {
-    setSyncing(true);
-    try {
-      const res = await api.post<{ synced: number }>('/auth/strava/sync');
-      await queryClient.invalidateQueries({ queryKey: ['profile'] });
-      Alert.alert('Sincronizado', `${res.data.synced} atividades importadas.`);
-    } catch {
-      Alert.alert('Erro', 'Falha ao sincronizar com o Strava.');
-    } finally {
-      setSyncing(false);
     }
   }
 
@@ -308,11 +291,6 @@ export default function ProfileScreen() {
               sub={data?.address.zipCode ? `CEP ${data.address.zipCode}` : 'Configurar'}
               onPress={() => setShowAddress(true)}
             />
-            <SettingRow
-              label="Conexões"
-              sub={data?.strava.connected ? 'Strava conectado' : 'Nenhuma conexão ativa'}
-              onPress={() => setShowConnections(true)}
-            />
             <SettingRow label="Notificações" sub="Diárias" />
             <SettingRow label="Ajuda & suporte" />
             <SettingRow label="Sair da conta" onPress={logout} last />
@@ -334,13 +312,6 @@ export default function ProfileScreen() {
               }}
               onClose={() => setShowEditProfile(false)}
             />
-          )}
-        </Modal>
-
-        {/* Modal conexões */}
-        <Modal visible={showConnections} animationType="slide" presentationStyle="pageSheet">
-          {data && (
-            <ConnectionsScreen strava={data.strava} onClose={() => setShowConnections(false)} />
           )}
         </Modal>
 
