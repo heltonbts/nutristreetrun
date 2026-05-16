@@ -1,12 +1,24 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
   IsDateString,
+  IsIn,
   IsInt,
   IsNumber,
   IsOptional,
   IsString,
+  Max,
+  MaxLength,
   Min,
 } from 'class-validator';
+
+export const SURFACES = [
+  'asfalto',
+  'trilha',
+  'esteira',
+  'pista',
+  'areia',
+] as const;
+export type Surface = (typeof SURFACES)[number];
 
 export class CreateActivityDto {
   @ApiPropertyOptional({ example: 'Corrida da manhã' })
@@ -43,4 +55,22 @@ export class CreateActivityDto {
   @IsOptional()
   @IsNumber()
   caloriesBurned?: number;
+
+  @ApiPropertyOptional({ example: 4, description: 'Como se sentiu (1–5)' })
+  @IsOptional()
+  @IsInt()
+  @Min(1)
+  @Max(5)
+  feeling?: number;
+
+  @ApiPropertyOptional({ example: 'asfalto', enum: SURFACES })
+  @IsOptional()
+  @IsIn(SURFACES)
+  surface?: Surface;
+
+  @ApiPropertyOptional({ example: 'Treino leve domingo de manhã' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
 }

@@ -51,6 +51,9 @@ export class ActivitiesService {
         caloriesBurned: dto.caloriesBurned
           ? Math.round(dto.caloriesBurned)
           : undefined,
+        feeling: dto.feeling,
+        surface: dto.surface,
+        note: dto.note?.trim() || undefined,
       },
     });
 

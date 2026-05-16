@@ -141,6 +141,9 @@ model Activity {
   avgHeartRate   Int?
   maxHeartRate   Int?
   caloriesBurned Float?
+  feeling        Int?
+  surface        String?
+  note           String?
   createdAt      DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])

@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useQueryClient } from '@tanstack/react-query';
 import * as Location from 'expo-location';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { useCallback, useEffect, useRef, useState } from 'react';
@@ -20,12 +19,10 @@ import MapView, { Polyline, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
-import { api } from '../../../src/lib/api';
 import {
   getCaloriesBurned,
   getHeartRateStats,
   getLatestHeartRate,
-  saveRunToHealth,
 } from '../../../src/lib/healthKit';
 import { endRunActivity, startRunActivity, updateRunActivity } from '../../../src/lib/liveActivity';
 import { colors, font } from '../../../src/lib/tokens';
@@ -145,14 +142,12 @@ function GpsSignal({ ready }: { ready: boolean }) {
 export default function TrackerScreen() {
   const insets = useSafeAreaInsets();
   const router = useRouter();
-  const queryClient = useQueryClient();
   const mapRef = useRef<MapView>(null);
 
   const [status, setStatus] = useState<Status>('idle');
   const [coords, setCoords] = useState<TrackedCoord[]>([]);
   const [elapsedSec, setElapsedSec] = useState(0);
   const [gpsReady, setGpsReady] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [newBestPace, setNewBestPace] = useState(false);
   const [currentLocation, setCurrentLocation] = useState<{
     latitude: number;
@@ -541,39 +536,23 @@ export default function TrackerScreen() {
     ]);
   }
 
-  async function saveRun() {
+  function saveRun() {
     const distKm = totalKm(coords);
     if (distKm < 0.1) {
       Alert.alert('Corrida muito curta', 'Percorra pelo menos 100 metros para salvar.');
       return;
     }
-    setSaving(true);
-    try {
-      const title = `Corrida de ${weekdays[startedAtRef.current!.getDay()]}`;
-      const res = await api.post<{ newBestPace: boolean }>('/activities', {
-        distanceKm: distKm,
-        durationSeconds: elapsedSec,
+    router.push({
+      pathname: '/(tabs)/runs/post-run',
+      params: {
+        distanceKm: String(distKm),
+        durationSeconds: String(elapsedSec),
         startedAt: startedAtRef.current!.toISOString(),
-        title,
-        ...(hrStats.avg && { avgHeartRate: hrStats.avg }),
-        ...(hrStats.max && { maxHeartRate: hrStats.max }),
-        ...(hrStats.calories > 0 && { caloriesBurned: hrStats.calories }),
-      });
-      await AsyncStorage.removeItem(COORDS_KEY);
-      void queryClient.invalidateQueries({ queryKey: ['activities'] });
-      void queryClient.invalidateQueries({ queryKey: ['activities-summary'] });
-      void saveRunToHealth({
-        startedAt: startedAtRef.current!,
-        durationSeconds: elapsedSec,
-        distanceKm: distKm,
-      });
-      if (res.data.newBestPace) setNewBestPace(true);
-      else router.back();
-    } catch {
-      Alert.alert('Erro', 'Não foi possível salvar a corrida. Tente novamente.');
-    } finally {
-      setSaving(false);
-    }
+        ...(hrStats.avg && { avgHeartRate: String(hrStats.avg) }),
+        ...(hrStats.max && { maxHeartRate: String(hrStats.max) }),
+        ...(hrStats.calories > 0 && { calories: String(hrStats.calories) }),
+      },
+    });
   }
 
   function discard() {
@@ -701,12 +680,8 @@ export default function TrackerScreen() {
               </View>
             ) : null}
           </View>
-          <Pressable
-            style={[s.primaryBtn, saving && { opacity: 0.6 }]}
-            onPress={saveRun}
-            disabled={saving}
-          >
-            <Text style={s.primaryBtnText}>{saving ? 'SALVANDO...' : 'SALVAR CORRIDA'}</Text>
+          <Pressable style={s.primaryBtn} onPress={saveRun}>
+            <Text style={s.primaryBtnText}>SALVAR CORRIDA</Text>
           </Pressable>
           <Pressable style={s.discardBtn} onPress={discard}>
             <Text style={s.discardText}>Descartar</Text>
