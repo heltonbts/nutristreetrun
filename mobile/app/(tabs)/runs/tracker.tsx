@@ -300,10 +300,16 @@ export default function TrackerScreen() {
     return () => clearInterval(interval);
   }, [status]);
 
-  // Reset state when screen gets focus after a finished/discarded run
+  // Reset state when screen gets focus after a finished/discarded run.
+  // Read state via refs so the callback identity stays stable — otherwise
+  // setStatus('finished') would re-trigger the effect mid-focus and skip the summary.
+  const statusRef = useRef(status);
+  const newBestPaceRef = useRef(newBestPace);
+  statusRef.current = status;
+  newBestPaceRef.current = newBestPace;
   useFocusEffect(
     useCallback(() => {
-      if (status === 'finished' || newBestPace) {
+      if (statusRef.current === 'finished' || newBestPaceRef.current) {
         setStatus('idle');
         setCoords([]);
         setElapsedSec(0);
@@ -315,7 +321,7 @@ export default function TrackerScreen() {
         splitStartDistRef.current = 0;
         splitStartAltRef.current = null;
       }
-    }, [status, newBestPace]),
+    }, []),
   );
 
   // Update Live Activity every 5 seconds while running
