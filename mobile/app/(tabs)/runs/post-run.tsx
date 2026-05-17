@@ -5,6 +5,7 @@ import { useState } from 'react';
 import {
   Alert,
   KeyboardAvoidingView,
+  Modal,
   Platform,
   Pressable,
   ScrollView,
@@ -83,6 +84,7 @@ export default function PostRunScreen() {
   const [surface, setSurface] = useState<string | null>(null);
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
+  const [result, setResult] = useState<{ newBest: boolean } | null>(null);
 
   const paceSec = distanceKm > 0 ? durationSeconds / distanceKm : 0;
   const timeOfDay = startedAt.toLocaleTimeString('pt-BR', {
@@ -116,17 +118,7 @@ export default function PostRunScreen() {
       void queryClient.invalidateQueries({ queryKey: ['activities'] });
       void queryClient.invalidateQueries({ queryKey: ['activities-summary'] });
       void saveRunToHealth({ startedAt, durationSeconds, distanceKm });
-      if (res.data.newBestPace) {
-        Alert.alert(
-          '🏆 Novo recorde!',
-          `Você bateu seu melhor pace pessoal: ${fmtPace(paceSec)}/km`,
-          [{ text: 'OK', onPress: () => router.replace('/(tabs)/feed') }],
-        );
-      } else {
-        Alert.alert('Corrida salva! 🎉', `${distanceKm.toFixed(2)} km registrados.`, [
-          { text: 'Ver no feed', onPress: () => router.replace('/(tabs)/feed') },
-        ]);
-      }
+      setResult({ newBest: res.data.newBestPace });
     } catch {
       Alert.alert('Erro', 'Não foi possível salvar a corrida. Tente novamente.');
       setSaving(false);
@@ -231,6 +223,35 @@ export default function PostRunScreen() {
           <Text style={s.saveBtnText}>{saving ? 'SALVANDO...' : 'SALVAR CORRIDA'}</Text>
         </Pressable>
       </ScrollView>
+
+      <Modal visible={!!result} transparent animationType="fade" statusBarTranslucent>
+        <View style={s.modalOverlay}>
+          <View style={s.modalCard}>
+            <View style={[s.modalIcon, result?.newBest && s.modalIconGold]}>
+              <Text style={s.modalIconText}>{result?.newBest ? '🏆' : '✓'}</Text>
+            </View>
+            <Text style={s.modalTitle}>{result?.newBest ? 'NOVO RECORDE!' : 'CORRIDA SALVA!'}</Text>
+            <Text style={s.modalSub}>
+              {result?.newBest
+                ? `Seu melhor pace: ${fmtPace(paceSec)}/km`
+                : `${distanceKm.toFixed(2)} km registrados`}
+            </Text>
+
+            <Pressable
+              style={({ pressed }) => [s.modalBtnPrimary, pressed && { opacity: 0.85 }]}
+              onPress={() => router.replace('/(tabs)/feed')}
+            >
+              <Text style={s.modalBtnPrimaryText}>VER NO FEED</Text>
+            </Pressable>
+            <Pressable
+              style={({ pressed }) => [s.modalBtnSecondary, pressed && { opacity: 0.6 }]}
+              onPress={() => router.replace('/(tabs)/runs')}
+            >
+              <Text style={s.modalBtnSecondaryText}>MINHAS CORRIDAS</Text>
+            </Pressable>
+          </View>
+        </View>
+      </Modal>
     </KeyboardAvoidingView>
   );
 }
@@ -258,6 +279,79 @@ function Metric({ value, unit, label }: { value: string; unit?: string; label: s
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.7)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 32,
+  },
+  modalCard: {
+    width: '100%',
+    backgroundColor: colors.card,
+    borderRadius: 24,
+    borderWidth: 1,
+    borderColor: colors.line,
+    paddingVertical: 28,
+    paddingHorizontal: 24,
+    alignItems: 'center',
+  },
+  modalIcon: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: 'rgba(95,184,168,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(95,184,168,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 16,
+  },
+  modalIconGold: {
+    backgroundColor: 'rgba(255,200,0,0.15)',
+    borderColor: 'rgba(255,200,0,0.45)',
+  },
+  modalIconText: { fontSize: 30, color: colors.brand },
+  modalTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 30,
+    color: colors.text,
+    letterSpacing: 1,
+    lineHeight: 32,
+  },
+  modalSub: {
+    fontFamily: font.body,
+    fontSize: 14,
+    color: colors.textMute,
+    marginTop: 4,
+    marginBottom: 24,
+    textAlign: 'center',
+  },
+  modalBtnPrimary: {
+    width: '100%',
+    backgroundColor: colors.brand,
+    borderRadius: 14,
+    paddingVertical: 16,
+    alignItems: 'center',
+  },
+  modalBtnPrimaryText: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 18,
+    color: colors.brandInk,
+    letterSpacing: 1.5,
+  },
+  modalBtnSecondary: {
+    width: '100%',
+    paddingVertical: 14,
+    alignItems: 'center',
+    marginTop: 4,
+  },
+  modalBtnSecondaryText: {
+    fontFamily: font.bodyBold,
+    fontSize: 13,
+    color: colors.textMute,
+    letterSpacing: 1,
+  },
   scroll: { paddingHorizontal: 20, paddingBottom: 24 },
   header: {
     flexDirection: 'row',
