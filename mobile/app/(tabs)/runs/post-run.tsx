@@ -123,7 +123,9 @@ export default function PostRunScreen() {
           [{ text: 'OK', onPress: () => router.replace('/(tabs)/feed') }],
         );
       } else {
-        router.replace('/(tabs)/feed');
+        Alert.alert('Corrida salva! 🎉', `${distanceKm.toFixed(2)} km registrados.`, [
+          { text: 'Ver no feed', onPress: () => router.replace('/(tabs)/feed') },
+        ]);
       }
     } catch {
       Alert.alert('Erro', 'Não foi possível salvar a corrida. Tente novamente.');
