@@ -1,5 +1,7 @@
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
+import { Type } from 'class-transformer';
 import {
+  IsArray,
   IsDateString,
   IsIn,
   IsInt,
@@ -9,7 +11,28 @@ import {
   Max,
   MaxLength,
   Min,
+  ValidateNested,
 } from 'class-validator';
+
+class SplitDto {
+  @ApiProperty({ example: 1 })
+  @IsInt()
+  @Min(1)
+  km: number;
+
+  @ApiProperty({ example: 312.5, description: 'Pace do split em segundos/km' })
+  @IsNumber()
+  @Min(0)
+  paceSec: number;
+
+  @ApiPropertyOptional({
+    example: 3.2,
+    description: 'Delta de elevação no split (m)',
+  })
+  @IsOptional()
+  @IsNumber()
+  elevDelta?: number;
+}
 
 export const SURFACES = [
   'asfalto',
@@ -48,6 +71,51 @@ export class CreateActivityDto {
   @IsOptional()
   @IsString()
   routePolyline?: string;
+
+  @ApiPropertyOptional({ example: 15, description: 'Ganho de elevação (m)' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  elevationGainM?: number;
+
+  @ApiPropertyOptional({ example: 13, description: 'Perda de elevação (m)' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  elevationLossM?: number;
+
+  @ApiPropertyOptional({
+    example: 42,
+    description: 'Altitude máxima atingida (m)',
+  })
+  @IsOptional()
+  @IsInt()
+  maxElevationM?: number;
+
+  @ApiPropertyOptional({
+    example: 14.3,
+    description: 'Velocidade máxima (km/h)',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  maxSpeedKph?: number;
+
+  @ApiPropertyOptional({ example: 60, description: 'Tempo total em pausa (s)' })
+  @IsOptional()
+  @IsInt()
+  @Min(0)
+  pauseSec?: number;
+
+  @ApiPropertyOptional({
+    type: () => [SplitDto],
+    description: 'Splits por km (tempo + elevação)',
+  })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => SplitDto)
+  splits?: SplitDto[];
 
   @ApiPropertyOptional({ example: 148 })
   @IsOptional()

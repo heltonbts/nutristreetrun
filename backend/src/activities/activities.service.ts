@@ -1,4 +1,5 @@
 import { Injectable } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 
 import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
@@ -46,6 +47,12 @@ export class ActivitiesService {
         startedAt,
         durationSec: Math.round(dto.durationSeconds),
         routePolyline: dto.routePolyline || undefined,
+        elevationGainM: dto.elevationGainM,
+        elevationLossM: dto.elevationLossM,
+        maxElevationM: dto.maxElevationM,
+        maxSpeedKph: dto.maxSpeedKph,
+        pauseSec: dto.pauseSec,
+        splits: dto.splits as unknown as Prisma.InputJsonValue,
         avgHeartRate: dto.avgHeartRate,
         maxHeartRate: dto.maxHeartRate,
         caloriesBurned: dto.caloriesBurned

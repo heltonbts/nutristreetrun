@@ -125,7 +125,14 @@ model Activity {
   skipReason     String?
   startedAt      DateTime
   durationSec    Int?
+  pauseSec       Int? // tempo total em pausa (subtrai-se ao mostrar "tempo movimento")
   routePolyline  String? // traçado GPS encodado (Google polyline) — feed/detalhe
+  // Stats derivados dos coords do tracker; nullable porque corridas antigas não têm.
+  elevationGainM Int?
+  elevationLossM Int?
+  maxElevationM  Int?
+  maxSpeedKph    Float?
+  splits         Json? // array { km, paceSec, elevDelta } por split de 1km
   avgHeartRate   Int?
   maxHeartRate   Int?
   caloriesBurned Float?
