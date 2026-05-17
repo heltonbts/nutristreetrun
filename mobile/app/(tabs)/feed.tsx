@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Alert,
   FlatList,
   Image,
   Keyboard,
@@ -22,6 +23,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { ClapIcon, CommentIcon, FireIcon } from '../../src/components/ReactionIcons';
 import { ScreenTransition } from '../../src/components/ScreenTransition';
+import { CameraIcon, CloseIcon, PlusIcon } from '../../src/components/UiIcons';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
 
@@ -512,6 +514,13 @@ function NewPostSheet({
   const [body, setBody] = useState('');
   const [image, setImage] = useState<ImagePicker.ImagePickerAsset | null>(null);
   const [sending, setSending] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const reset = () => {
+    setBody('');
+    setImage(null);
+    setSuccess(false);
+  };
 
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
@@ -537,10 +546,16 @@ function NewPostSheet({
       await api.post('/posts', formData, {
         headers: { 'Content-Type': 'multipart/form-data' },
       });
-      setBody('');
-      setImage(null);
+      // Atualiza o feed em background; mostra a confirmação aqui dentro
+      // do sheet (success view inline). Texto e foto só são limpos depois
+      // que o usuário fecha — pra preservar caso o backend tenha falhado.
       onPosted();
-      onClose();
+      setSuccess(true);
+    } catch {
+      Alert.alert(
+        'Não foi possível publicar',
+        'Verifique a conexão e tente novamente. Seu texto está salvo.',
+      );
     } finally {
       setSending(false);
     }
@@ -551,7 +566,10 @@ function NewPostSheet({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={() => {
+        if (success) reset();
+        onClose();
+      }}
     >
       <KeyboardAvoidingView
         style={[np.root, { backgroundColor: colors.card }]}
@@ -561,52 +579,79 @@ function NewPostSheet({
           <View style={np.handleBar} />
         </View>
 
-        <View style={np.titleRow}>
-          <Text style={np.title}>Novo post</Text>
-          <Pressable onPress={onClose}>
-            <Text style={np.close}>✕</Text>
-          </Pressable>
-        </View>
+        {success ? (
+          // Confirmação de sucesso inline (mesma família do modal do post-run)
+          <View style={np.successWrap}>
+            <View style={np.successIcon}>
+              <Text style={np.successIconText}>✓</Text>
+            </View>
+            <Text style={np.successTitle}>POST PUBLICADO!</Text>
+            <Text style={np.successSub}>Sua publicação já está no feed.</Text>
 
-        <View style={np.body}>
-          <TextInput
-            style={np.input}
-            placeholder="Conta o que tá rolando..."
-            placeholderTextColor={colors.textMute}
-            value={body}
-            onChangeText={setBody}
-            multiline
-            autoFocus
-            maxLength={500}
-          />
-
-          {image ? (
-            <View style={np.imagePreviewWrap}>
-              <Image source={{ uri: image.uri }} style={np.imagePreview} resizeMode="cover" />
-              <Pressable style={np.imageRemove} onPress={() => setImage(null)}>
-                <Text style={np.imageRemoveText}>✕</Text>
+            <Pressable
+              style={({ pressed }) => [np.successBtn, pressed && { opacity: 0.85 }]}
+              onPress={() => {
+                reset();
+                onClose();
+              }}
+            >
+              <Text style={np.successBtnText}>VER NO FEED</Text>
+            </Pressable>
+          </View>
+        ) : (
+          <>
+            <View style={np.titleRow}>
+              <Text style={np.title}>NOVO POST</Text>
+              <Pressable onPress={onClose} hitSlop={10} style={np.closeBtn}>
+                <CloseIcon size={20} color={colors.textMute} />
               </Pressable>
             </View>
-          ) : null}
-        </View>
 
-        <View style={[np.footer, { paddingBottom: insets.bottom + 12 }]}>
-          <Pressable style={np.photoBtn} onPress={pickImage}>
-            <Text style={np.photoBtnText}>📷 Foto</Text>
-          </Pressable>
-          <Text style={np.charCount}>{body.length}/500</Text>
-          <Pressable
-            style={[np.submitBtn, (!body.trim() || sending) && np.submitBtnDisabled]}
-            onPress={submit}
-            disabled={!body.trim() || sending}
-          >
-            {sending ? (
-              <ActivityIndicator size="small" color={colors.brandInk} />
-            ) : (
-              <Text style={np.submitText}>PUBLICAR</Text>
-            )}
-          </Pressable>
-        </View>
+            <View style={np.body}>
+              <TextInput
+                style={np.input}
+                placeholder="Conta o que tá rolando..."
+                placeholderTextColor={colors.textMute}
+                value={body}
+                onChangeText={setBody}
+                multiline
+                autoFocus
+                maxLength={500}
+              />
+
+              {image ? (
+                <View style={np.imagePreviewWrap}>
+                  <Image source={{ uri: image.uri }} style={np.imagePreview} resizeMode="cover" />
+                  <Pressable style={np.imageRemove} onPress={() => setImage(null)} hitSlop={6}>
+                    <CloseIcon size={14} color="#fff" strokeWidth={2.4} />
+                  </Pressable>
+                </View>
+              ) : null}
+            </View>
+
+            <View style={[np.footer, { paddingBottom: insets.bottom + 12 }]}>
+              <Pressable
+                style={({ pressed }) => [np.photoBtn, pressed && { opacity: 0.7 }]}
+                onPress={pickImage}
+              >
+                <CameraIcon size={18} color={colors.textDim} />
+                <Text style={np.photoBtnText}>{image ? 'TROCAR FOTO' : 'ADICIONAR FOTO'}</Text>
+              </Pressable>
+              <Text style={np.charCount}>{body.length}/500</Text>
+              <Pressable
+                style={[np.submitBtn, (!body.trim() || sending) && np.submitBtnDisabled]}
+                onPress={submit}
+                disabled={!body.trim() || sending}
+              >
+                {sending ? (
+                  <ActivityIndicator size="small" color={colors.brandInk} />
+                ) : (
+                  <Text style={np.submitText}>PUBLICAR</Text>
+                )}
+              </Pressable>
+            </View>
+          </>
+        )}
       </KeyboardAvoidingView>
     </Modal>
   );
@@ -688,8 +733,19 @@ export default function FeedScreen() {
       <View style={[s.root, { paddingTop: insets.top }]}>
         {/* Header */}
         <View style={s.header}>
-          <Text style={s.kicker}>COMUNIDADE</Text>
-          <Text style={s.title}>FEED</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={s.kicker}>COMUNIDADE</Text>
+            <Text style={s.title}>FEED</Text>
+          </View>
+          <Pressable
+            style={({ pressed }) => [s.headerAction, pressed && { opacity: 0.6 }]}
+            onPress={() => setShowNewPost(true)}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Criar post"
+          >
+            <PlusIcon size={22} color={colors.brand} strokeWidth={2.4} />
+          </Pressable>
         </View>
 
         {loading ? (
@@ -728,14 +784,6 @@ export default function FeedScreen() {
             }
           />
         )}
-
-        {/* FAB */}
-        <Pressable
-          style={[s.fab, { bottom: insets.bottom + 72 }]}
-          onPress={() => setShowNewPost(true)}
-        >
-          <Text style={s.fabText}>+</Text>
-        </Pressable>
       </View>
 
       <CommentsSheet
@@ -758,7 +806,24 @@ export default function FeedScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
-  header: { paddingHorizontal: 20, paddingTop: 12, paddingBottom: 8 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'flex-end',
+    paddingHorizontal: 20,
+    paddingTop: 12,
+    paddingBottom: 8,
+  },
+  headerAction: {
+    width: 38,
+    height: 38,
+    borderRadius: 19,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(95,184,168,0.12)',
+    borderWidth: 1,
+    borderColor: 'rgba(95,184,168,0.32)',
+    marginBottom: 4,
+  },
   kicker: {
     fontFamily: font.bodyBold,
     fontSize: 11,
@@ -980,29 +1045,6 @@ const s = StyleSheet.create({
     textAlign: 'center',
     lineHeight: 20,
   },
-
-  // FAB
-  fab: {
-    position: 'absolute',
-    right: 20,
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: colors.brand,
-    alignItems: 'center',
-    justifyContent: 'center',
-    shadowColor: colors.brand,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.4,
-    shadowRadius: 8,
-    elevation: 6,
-  },
-  fabText: {
-    fontFamily: font.body,
-    fontSize: 28,
-    color: colors.brandInk,
-    lineHeight: 32,
-  },
 });
 
 // ─── Styles — CommentsSheet ───────────────────────────────────────────────────
@@ -1111,11 +1153,19 @@ const np = StyleSheet.create({
   },
   title: {
     fontFamily: 'BebasNeue_400Regular',
-    fontSize: 20,
+    fontSize: 26,
     color: colors.text,
-    letterSpacing: 0.5,
+    letterSpacing: 1.2,
+    lineHeight: 28,
   },
-  close: { fontFamily: font.body, fontSize: 16, color: colors.textMute, padding: 4 },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
   body: { flex: 1, paddingHorizontal: 20, paddingTop: 16, gap: 14 },
   input: {
     fontFamily: font.body,
@@ -1138,7 +1188,6 @@ const np = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  imageRemoveText: { fontFamily: font.bodyBold, fontSize: 12, color: '#fff' },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -1149,14 +1198,22 @@ const np = StyleSheet.create({
     borderTopColor: colors.line,
   },
   photoBtn: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 7,
+    paddingHorizontal: 12,
+    paddingVertical: 9,
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.06)',
     borderWidth: 1,
     borderColor: colors.line,
   },
-  photoBtnText: { fontFamily: font.bodyMedium, fontSize: 13, color: colors.textDim },
+  photoBtnText: {
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.textDim,
+    letterSpacing: 0.6,
+  },
   charCount: {
     flex: 1,
     fontFamily: font.body,
@@ -1176,5 +1233,59 @@ const np = StyleSheet.create({
     fontSize: 12,
     color: colors.brandInk,
     letterSpacing: 1,
+  },
+  // Success view (inline, depois de publicar com sucesso)
+  successWrap: {
+    flex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+    paddingHorizontal: 32,
+    paddingBottom: 60,
+  },
+  successIcon: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'rgba(95,184,168,0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(95,184,168,0.4)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginBottom: 18,
+  },
+  successIconText: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 34,
+    color: colors.brand,
+    lineHeight: 36,
+  },
+  successTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 32,
+    color: colors.text,
+    letterSpacing: 1.4,
+    lineHeight: 34,
+  },
+  successSub: {
+    fontFamily: font.body,
+    fontSize: 14,
+    color: colors.textMute,
+    marginTop: 6,
+    marginBottom: 28,
+    textAlign: 'center',
+  },
+  successBtn: {
+    backgroundColor: colors.brand,
+    paddingVertical: 16,
+    paddingHorizontal: 36,
+    borderRadius: 14,
+    alignItems: 'center',
+    alignSelf: 'stretch',
+  },
+  successBtnText: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 18,
+    color: colors.brandInk,
+    letterSpacing: 1.5,
   },
 });
