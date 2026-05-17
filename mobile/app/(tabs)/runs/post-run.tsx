@@ -239,13 +239,19 @@ export default function PostRunScreen() {
 
             <Pressable
               style={({ pressed }) => [s.modalBtnPrimary, pressed && { opacity: 0.85 }]}
-              onPress={() => router.replace('/(tabs)/feed')}
+              onPress={() => {
+                // 1) desempilha o stack `runs` (saímos do post-run).
+                // 2) troca pra aba `feed` — router.replace direto não
+                //    cruzava as abas (pager) por estar no contexto do stack.
+                router.dismissAll();
+                router.navigate('/(tabs)/feed');
+              }}
             >
               <Text style={s.modalBtnPrimaryText}>VER NO FEED</Text>
             </Pressable>
             <Pressable
               style={({ pressed }) => [s.modalBtnSecondary, pressed && { opacity: 0.6 }]}
-              onPress={() => router.replace('/(tabs)/runs')}
+              onPress={() => router.dismissAll()}
             >
               <Text style={s.modalBtnSecondaryText}>MINHAS CORRIDAS</Text>
             </Pressable>
