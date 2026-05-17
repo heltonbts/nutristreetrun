@@ -21,10 +21,13 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
   DistanceIcon,
+  DropletIcon,
   FlameStatIcon,
   HeartIcon,
   MountainIcon,
   PaceIcon,
+  PauseIcon,
+  SpeedIcon,
   StopwatchIcon,
 } from '../../../src/components/UiIcons';
 import { api } from '../../../src/lib/api';
@@ -102,10 +105,15 @@ export default function PostRunScreen() {
     durationSeconds: string;
     startedAt: string;
     routePolyline?: string;
+    splits?: string;
     avgHeartRate?: string;
     maxHeartRate?: string;
     calories?: string;
     elevationGain?: string;
+    elevationLoss?: string;
+    maxElevation?: string;
+    maxSpeed?: string;
+    pauseSec?: string;
     steps?: string;
   }>();
   const router = useRouter();
@@ -119,6 +127,10 @@ export default function PostRunScreen() {
   const maxHeartRate = params.maxHeartRate ? parseInt(params.maxHeartRate, 10) : null;
   const calories = params.calories ? parseInt(params.calories, 10) : 0;
   const elevationGain = params.elevationGain ? parseInt(params.elevationGain, 10) : 0;
+  const elevationLoss = params.elevationLoss ? parseInt(params.elevationLoss, 10) : 0;
+  const maxElevation = params.maxElevation ? parseInt(params.maxElevation, 10) : null;
+  const maxSpeed = params.maxSpeed ? parseFloat(params.maxSpeed) : 0;
+  const pauseSec = params.pauseSec ? parseInt(params.pauseSec, 10) : 0;
   const steps = params.steps ? parseInt(params.steps, 10) : 0;
 
   const defaultTitle = `Corrida de ${weekdays[startedAt.getDay()]}`;
@@ -146,12 +158,29 @@ export default function PostRunScreen() {
     if (saving) return;
     setSaving(true);
     try {
+      // Splits chegaram como JSON string via params (router só serializa
+      // primitives); aqui voltam pra array antes de mandar pro backend.
+      let splitsArray: unknown[] | undefined;
+      if (params.splits) {
+        try {
+          const parsed = JSON.parse(params.splits);
+          if (Array.isArray(parsed)) splitsArray = parsed;
+        } catch {
+          // ignora splits corrompido — não bloqueia o save
+        }
+      }
       const res = await api.post<{ newBestPace: boolean }>('/activities', {
         distanceKm,
         durationSeconds,
         startedAt: startedAt.toISOString(),
         title: title.trim() || defaultTitle,
         ...(params.routePolyline && { routePolyline: params.routePolyline }),
+        ...(splitsArray && { splits: splitsArray }),
+        ...(elevationGain > 0 && { elevationGainM: elevationGain }),
+        ...(elevationLoss > 0 && { elevationLossM: elevationLoss }),
+        ...(maxElevation != null && { maxElevationM: maxElevation }),
+        ...(maxSpeed > 0 && { maxSpeedKph: maxSpeed }),
+        ...(pauseSec > 0 && { pauseSec }),
         ...(avgHeartRate && { avgHeartRate }),
         ...(maxHeartRate && { maxHeartRate }),
         ...(calories > 0 && { caloriesBurned: calories }),
@@ -247,7 +276,39 @@ export default function PostRunScreen() {
               icon={<MountainIcon color={colors.brand} />}
               value={String(elevationGain)}
               unit="m"
-              label="Elevação"
+              label="Ganho elevação"
+            />
+          ) : null}
+          {elevationLoss > 0 ? (
+            <Metric
+              icon={<MountainIcon color={colors.brand} />}
+              value={String(elevationLoss)}
+              unit="m"
+              label="Perda elevação"
+            />
+          ) : null}
+          {maxSpeed > 0 ? (
+            <Metric
+              icon={<SpeedIcon color={colors.brand} />}
+              value={maxSpeed.toFixed(1)}
+              unit="km/h"
+              label="Velocidade máx"
+            />
+          ) : null}
+          {pauseSec > 0 ? (
+            <Metric
+              icon={<PauseIcon color={colors.brand} />}
+              value={fmtTime(pauseSec)}
+              label="Pausa"
+            />
+          ) : null}
+          {/* Dehydration sempre que houver duração — estimativa (~700 ml/h) */}
+          {durationSeconds > 0 ? (
+            <Metric
+              icon={<DropletIcon color={colors.brand} />}
+              value={Math.round((durationSeconds / 3600) * 700).toLocaleString('pt-BR')}
+              unit="ml"
+              label="Hidratação"
             />
           ) : null}
           {avgHeartRate ? (

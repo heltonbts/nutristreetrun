@@ -174,6 +174,30 @@ export function MountainIcon({ size = 22, color = colors.text, strokeWidth = 1.7
   );
 }
 
+/** Gota — hidratação / desidratação (estimativa). */
+export function DropletIcon({ size = 22, color = colors.text, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 3.5c-3.5 4-6.5 7.2-6.5 11.5a6.5 6.5 0 0 0 13 0c0-4.3-3-7.5-6.5-11.5Z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
+/** Pause — duas barras verticais (tempo parado). */
+export function PauseIcon({ size = 22, color = colors.text, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9} stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M10 8.5v7M14 8.5v7" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
 /** Coração — frequência cardíaca. Outline (filled fica confuso em stat card). */
 export function HeartIcon({ size = 22, color = colors.text, strokeWidth = 1.7 }: IconProps) {
   return (
