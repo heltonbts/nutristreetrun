@@ -1,10 +1,12 @@
 import polylineCodec from '@mapbox/polyline';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
+import { useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
+  Animated,
   Dimensions,
+  Easing,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -247,6 +249,47 @@ export default function RunDetailScreen() {
   const insets = useSafeAreaInsets();
   const [tab, setTab] = useState<TabKey>('map');
 
+  // Transição de tab: crossfade + slide horizontal sutil. Direção depende
+  // da posição da tab nova (à direita do atual = slide pra esquerda).
+  const TAB_ORDER: TabKey[] = ['map', 'stats', 'splits'];
+  const fade = useRef(new Animated.Value(1)).current;
+  const slide = useRef(new Animated.Value(0)).current;
+  const switchTab = (next: TabKey) => {
+    if (next === tab) return;
+    const dir = TAB_ORDER.indexOf(next) > TAB_ORDER.indexOf(tab) ? 1 : -1;
+    Animated.parallel([
+      Animated.timing(fade, {
+        toValue: 0,
+        duration: 110,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+      Animated.timing(slide, {
+        toValue: -dir * 12,
+        duration: 110,
+        easing: Easing.in(Easing.quad),
+        useNativeDriver: true,
+      }),
+    ]).start(() => {
+      setTab(next);
+      slide.setValue(dir * 12);
+      Animated.parallel([
+        Animated.timing(fade, {
+          toValue: 1,
+          duration: 200,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+        Animated.timing(slide, {
+          toValue: 0,
+          duration: 200,
+          easing: Easing.out(Easing.cubic),
+          useNativeDriver: true,
+        }),
+      ]).start();
+    });
+  };
+
   const { data, isLoading, isError } = useQuery<ActivityDetail>({
     queryKey: ['activity', id],
     queryFn: () => api.get(`/activities/${id}`).then((r) => r.data as ActivityDetail),
@@ -325,168 +368,170 @@ export default function RunDetailScreen() {
         ) : null}
       </View>
 
-      <TabsBar active={tab} onChange={setTab} />
+      <TabsBar active={tab} onChange={switchTab} />
 
-      {/* ── Tab Mapa ───────────────────────────────────────────────────────── */}
-      {tab === 'map' && (
-        <>
-          {route ? (
-            <View style={s.mapWrap} pointerEvents="none">
-              <MapView
-                style={StyleSheet.absoluteFill}
-                region={route.region}
-                scrollEnabled={false}
-                zoomEnabled={false}
-                rotateEnabled={false}
-                pitchEnabled={false}
-                toolbarEnabled={false}
-                loadingEnabled
-                loadingBackgroundColor={colors.card}
-              >
-                <Polyline coordinates={route.coords} strokeColor={colors.brand} strokeWidth={5} />
-              </MapView>
-            </View>
-          ) : (
-            <View style={[s.mapWrap, s.mapPlaceholder]}>
-              <Text style={s.mapPlaceholderText}>Sem traçado salvo</Text>
-            </View>
-          )}
+      <Animated.View style={{ opacity: fade, transform: [{ translateX: slide }] }}>
+        {/* ── Tab Mapa ───────────────────────────────────────────────────────── */}
+        {tab === 'map' && (
+          <>
+            {route ? (
+              <View style={s.mapWrap} pointerEvents="none">
+                <MapView
+                  style={StyleSheet.absoluteFill}
+                  region={route.region}
+                  scrollEnabled={false}
+                  zoomEnabled={false}
+                  rotateEnabled={false}
+                  pitchEnabled={false}
+                  toolbarEnabled={false}
+                  loadingEnabled
+                  loadingBackgroundColor={colors.card}
+                >
+                  <Polyline coordinates={route.coords} strokeColor={colors.brand} strokeWidth={5} />
+                </MapView>
+              </View>
+            ) : (
+              <View style={[s.mapWrap, s.mapPlaceholder]}>
+                <Text style={s.mapPlaceholderText}>Sem traçado salvo</Text>
+              </View>
+            )}
 
-          <View style={s.statsGrid}>
-            <StatCard
-              icon={<DistanceIcon color={colors.brand} />}
-              value={distanceKm.toFixed(2)}
-              unit="km"
-              label="Distância"
+            <View style={s.statsGrid}>
+              <StatCard
+                icon={<DistanceIcon color={colors.brand} />}
+                value={distanceKm.toFixed(2)}
+                unit="km"
+                label="Distância"
+              />
+              <StatCard
+                icon={<StopwatchIcon color={colors.brand} />}
+                value={fmtDuration(durSec)}
+                label="Duração"
+              />
+              <StatCard
+                icon={<PaceIcon color={colors.brand} />}
+                value={pace}
+                label="Pace médio /km"
+              />
+              <StatCard
+                icon={<FlameStatIcon color={colors.brand} />}
+                value={calories ? String(Math.round(calories)) : '—'}
+                unit={calories ? 'kcal' : undefined}
+                label="Calorias"
+              />
+            </View>
+          </>
+        )}
+
+        {/* ── Tab Stats ──────────────────────────────────────────────────────── */}
+        {tab === 'stats' && (
+          <View style={s.detailList}>
+            <StatRow
+              icon={<SpeedIcon color={colors.textDim} />}
+              label="Velocidade média"
+              value={avgSpeedKph ? `${avgSpeedKph.toFixed(1)} km/h` : '—'}
             />
-            <StatCard
-              icon={<StopwatchIcon color={colors.brand} />}
-              value={fmtDuration(durSec)}
-              label="Duração"
+            <StatRow
+              icon={<SpeedIcon color={colors.textDim} />}
+              label="Velocidade máxima"
+              value={maxSpd != null ? `${maxSpd.toFixed(1)} km/h` : '—'}
             />
-            <StatCard
-              icon={<PaceIcon color={colors.brand} />}
-              value={pace}
-              label="Pace médio /km"
+            <StatRow
+              icon={<MountainIcon color={colors.textDim} />}
+              label="Ganho de elevação"
+              value={elevGain != null ? `${elevGain} m` : '—'}
             />
-            <StatCard
-              icon={<FlameStatIcon color={colors.brand} />}
-              value={calories ? String(Math.round(calories)) : '—'}
-              unit={calories ? 'kcal' : undefined}
-              label="Calorias"
+            <StatRow
+              icon={<MountainIcon color={colors.textDim} />}
+              label="Perda de elevação"
+              value={elevLoss != null ? `${elevLoss} m` : '—'}
+            />
+            <StatRow
+              icon={<MountainIcon color={colors.textDim} />}
+              label="Altitude máxima"
+              value={maxElev != null ? `${maxElev} m` : '—'}
+            />
+            <StatRow
+              icon={<HeartIcon color={colors.textDim} />}
+              label="FC média"
+              value={avgHr ? `${Math.round(avgHr)} bpm` : '—'}
+            />
+            <StatRow
+              icon={<HeartIcon color={colors.textDim} />}
+              label="FC máxima"
+              value={maxHr ? `${Math.round(maxHr)} bpm` : '—'}
+            />
+            <StatRow
+              icon={<PauseIcon color={colors.textDim} />}
+              label="Tempo em pausa"
+              value={pause > 0 ? fmtDuration(pause) : '—'}
+            />
+            <StatRow
+              icon={<DropletIcon color={colors.textDim} />}
+              label="Hidratação estimada"
+              value={dehydrationMl > 0 ? `${dehydrationMl.toLocaleString('pt-BR')} ml` : '—'}
+              last
             />
           </View>
-        </>
-      )}
+        )}
 
-      {/* ── Tab Stats ──────────────────────────────────────────────────────── */}
-      {tab === 'stats' && (
-        <View style={s.detailList}>
-          <StatRow
-            icon={<SpeedIcon color={colors.textDim} />}
-            label="Velocidade média"
-            value={avgSpeedKph ? `${avgSpeedKph.toFixed(1)} km/h` : '—'}
-          />
-          <StatRow
-            icon={<SpeedIcon color={colors.textDim} />}
-            label="Velocidade máxima"
-            value={maxSpd != null ? `${maxSpd.toFixed(1)} km/h` : '—'}
-          />
-          <StatRow
-            icon={<MountainIcon color={colors.textDim} />}
-            label="Ganho de elevação"
-            value={elevGain != null ? `${elevGain} m` : '—'}
-          />
-          <StatRow
-            icon={<MountainIcon color={colors.textDim} />}
-            label="Perda de elevação"
-            value={elevLoss != null ? `${elevLoss} m` : '—'}
-          />
-          <StatRow
-            icon={<MountainIcon color={colors.textDim} />}
-            label="Altitude máxima"
-            value={maxElev != null ? `${maxElev} m` : '—'}
-          />
-          <StatRow
-            icon={<HeartIcon color={colors.textDim} />}
-            label="FC média"
-            value={avgHr ? `${Math.round(avgHr)} bpm` : '—'}
-          />
-          <StatRow
-            icon={<HeartIcon color={colors.textDim} />}
-            label="FC máxima"
-            value={maxHr ? `${Math.round(maxHr)} bpm` : '—'}
-          />
-          <StatRow
-            icon={<PauseIcon color={colors.textDim} />}
-            label="Tempo em pausa"
-            value={pause > 0 ? fmtDuration(pause) : '—'}
-          />
-          <StatRow
-            icon={<DropletIcon color={colors.textDim} />}
-            label="Hidratação estimada"
-            value={dehydrationMl > 0 ? `${dehydrationMl.toLocaleString('pt-BR')} ml` : '—'}
-            last
-          />
-        </View>
-      )}
-
-      {/* ── Tab Splits ─────────────────────────────────────────────────────── */}
-      {tab === 'splits' && (
-        <View style={{ paddingHorizontal: 14, gap: 14 }}>
-          {splits.length === 0 ? (
-            <View style={[s.emptySplits]}>
-              <Text style={s.emptyText}>Sem splits salvos</Text>
-              <Text style={s.emptyHint}>
-                Splits são gerados a cada km durante a corrida e ficam salvos com a atividade.
-              </Text>
-            </View>
-          ) : (
-            <>
-              <View style={s.chartCard}>
-                <Text style={s.chartTitle}>RITMO POR KM</Text>
-                <PaceChart splits={splits} />
-                <View style={s.chartLegend}>
-                  <Text style={s.chartLegendText}>
-                    Pico mais alto = pace mais rápido · mais baixo = mais lento
-                  </Text>
-                </View>
+        {/* ── Tab Splits ─────────────────────────────────────────────────────── */}
+        {tab === 'splits' && (
+          <View style={{ paddingHorizontal: 14, gap: 14 }}>
+            {splits.length === 0 ? (
+              <View style={[s.emptySplits]}>
+                <Text style={s.emptyText}>Sem splits salvos</Text>
+                <Text style={s.emptyHint}>
+                  Splits são gerados a cada km durante a corrida e ficam salvos com a atividade.
+                </Text>
               </View>
-
-              <View style={s.splitsList}>
-                <View style={s.splitsHeader}>
-                  <Text style={[s.splitHeaderText, { width: 36 }]}>KM</Text>
-                  <Text style={[s.splitHeaderText, { flex: 1, textAlign: 'right' }]}>PACE</Text>
-                  <Text style={[s.splitHeaderText, { width: 72, textAlign: 'right' }]}>ELEV</Text>
+            ) : (
+              <>
+                <View style={s.chartCard}>
+                  <Text style={s.chartTitle}>RITMO POR KM</Text>
+                  <PaceChart splits={splits} />
+                  <View style={s.chartLegend}>
+                    <Text style={s.chartLegendText}>
+                      Pico mais alto = pace mais rápido · mais baixo = mais lento
+                    </Text>
+                  </View>
                 </View>
-                {splits.map((sp, i) => {
-                  const isLast = i === splits.length - 1;
-                  // Cor: melhor = brand, pior = danger, resto = text.
-                  let paceColor = colors.text;
-                  if (splitsBest != null && sp.paceSec === splitsBest) paceColor = colors.brand;
-                  else if (splitsWorst != null && sp.paceSec === splitsWorst)
-                    paceColor = colors.danger;
-                  return (
-                    <View key={sp.km} style={[s.splitRow, isLast && { borderBottomWidth: 0 }]}>
-                      <Text style={[s.splitCol, { width: 36, color: paceColor }]}>{sp.km}</Text>
-                      <Text
-                        style={[s.splitPace, { flex: 1, textAlign: 'right', color: paceColor }]}
-                      >
-                        {fmtPace(sp.paceSec)}
-                      </Text>
-                      <Text style={[s.splitElev, { width: 72, textAlign: 'right' }]}>
-                        {sp.elevDelta != null
-                          ? `${sp.elevDelta >= 0 ? '+' : ''}${Math.round(sp.elevDelta)} m`
-                          : '—'}
-                      </Text>
-                    </View>
-                  );
-                })}
-              </View>
-            </>
-          )}
-        </View>
-      )}
+
+                <View style={s.splitsList}>
+                  <View style={s.splitsHeader}>
+                    <Text style={[s.splitHeaderText, { width: 36 }]}>KM</Text>
+                    <Text style={[s.splitHeaderText, { flex: 1, textAlign: 'right' }]}>PACE</Text>
+                    <Text style={[s.splitHeaderText, { width: 72, textAlign: 'right' }]}>ELEV</Text>
+                  </View>
+                  {splits.map((sp, i) => {
+                    const isLast = i === splits.length - 1;
+                    // Cor: melhor = brand, pior = danger, resto = text.
+                    let paceColor = colors.text;
+                    if (splitsBest != null && sp.paceSec === splitsBest) paceColor = colors.brand;
+                    else if (splitsWorst != null && sp.paceSec === splitsWorst)
+                      paceColor = colors.danger;
+                    return (
+                      <View key={sp.km} style={[s.splitRow, isLast && { borderBottomWidth: 0 }]}>
+                        <Text style={[s.splitCol, { width: 36, color: paceColor }]}>{sp.km}</Text>
+                        <Text
+                          style={[s.splitPace, { flex: 1, textAlign: 'right', color: paceColor }]}
+                        >
+                          {fmtPace(sp.paceSec)}
+                        </Text>
+                        <Text style={[s.splitElev, { width: 72, textAlign: 'right' }]}>
+                          {sp.elevDelta != null
+                            ? `${sp.elevDelta >= 0 ? '+' : ''}${Math.round(sp.elevDelta)} m`
+                            : '—'}
+                        </Text>
+                      </View>
+                    );
+                  })}
+                </View>
+              </>
+            )}
+          </View>
+        )}
+      </Animated.View>
 
       {/* Challenge card */}
       {data.challenge && (
