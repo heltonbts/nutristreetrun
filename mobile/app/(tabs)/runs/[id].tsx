@@ -1,8 +1,28 @@
+import polylineCodec from '@mapbox/polyline';
 import { useQuery } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { ActivityIndicator, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import {
+  ActivityIndicator,
+  Dimensions,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
+import MapView, { Polyline, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import {
+  DistanceIcon,
+  FlameStatIcon,
+  HeartIcon,
+  PaceIcon,
+  RunnerGlyph,
+  SpeedIcon,
+  StopwatchIcon,
+} from '../../../src/components/UiIcons';
 import { api } from '../../../src/lib/api';
 import { colors, font } from '../../../src/lib/tokens';
 
@@ -16,6 +36,7 @@ interface ActivityDetail {
   skipReason: string | null;
   startedAt: string;
   durationSec: number | null;
+  routePolyline: string | null;
   avgHeartRate: number | null;
   maxHeartRate: number | null;
   caloriesBurned: number | null;
@@ -29,42 +50,88 @@ interface ActivityDetail {
   } | null;
 }
 
-function formatDuration(seconds: number): string {
+const { width: SCREEN_W } = Dimensions.get('window');
+
+function fmtDuration(seconds: number): string {
   const h = Math.floor(seconds / 3600);
   const m = Math.floor((seconds % 3600) / 60);
   const s = Math.round(seconds % 60);
-  if (h > 0) return `${h}h ${String(m).padStart(2, '0')}min`;
-  return `${m}min ${String(s).padStart(2, '0')}s`;
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return h > 0 ? `${h}:${pad(m)}:${pad(s)}` : `${m}:${pad(s)}`;
 }
 
-function formatDate(iso: string): string {
+function fmtDate(iso: string): string {
   const d = new Date(iso);
-  return d.toLocaleDateString('pt-BR', {
-    weekday: 'short',
+  const date = d.toLocaleDateString('pt-BR', {
     day: '2-digit',
-    month: 'short',
+    month: 'long',
     year: 'numeric',
   });
+  const time = d.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+  return `${date} · ${time}`;
 }
 
-function StatItem({
-  value,
-  label,
-  unit,
-  accent,
-}: {
+// Decodifica o polyline em coords + região que enquadra o traçado.
+function decodeRoute(encoded: string | null) {
+  if (!encoded) return null;
+  let pairs: [number, number][] = [];
+  try {
+    pairs = polylineCodec.decode(encoded);
+  } catch {
+    return null;
+  }
+  if (pairs.length < 2) return null;
+  const coords = pairs.map(([latitude, longitude]) => ({ latitude, longitude }));
+  let minLat = coords[0].latitude;
+  let maxLat = coords[0].latitude;
+  let minLng = coords[0].longitude;
+  let maxLng = coords[0].longitude;
+  for (const c of coords) {
+    minLat = Math.min(minLat, c.latitude);
+    maxLat = Math.max(maxLat, c.latitude);
+    minLng = Math.min(minLng, c.longitude);
+    maxLng = Math.max(maxLng, c.longitude);
+  }
+  const region: Region = {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLng + maxLng) / 2,
+    latitudeDelta: Math.max((maxLat - minLat) * 1.4, 0.005),
+    longitudeDelta: Math.max((maxLng - minLng) * 1.4, 0.005),
+  };
+  return { coords, region };
+}
+
+interface StatCardProps {
+  icon: React.ReactNode;
   value: string;
-  label: string;
   unit?: string;
-  accent?: boolean;
-}) {
+  label: string;
+}
+function StatCard({ icon, value, unit, label }: StatCardProps) {
   return (
-    <View style={s.statItem}>
+    <View style={s.statCard}>
+      <View style={s.statIconWrap}>{icon}</View>
       <View style={s.statValueRow}>
-        <Text style={[s.statValue, accent && { color: colors.brand }]}>{value}</Text>
-        {unit ? <Text style={s.statUnit}>{unit}</Text> : null}
+        <Text style={s.statValue}>{value}</Text>
+        {unit ? <Text style={s.statUnit}> {unit}</Text> : null}
       </View>
       <Text style={s.statLabel}>{label}</Text>
+    </View>
+  );
+}
+
+interface StatRowProps {
+  icon: React.ReactNode;
+  label: string;
+  value: string;
+  last?: boolean;
+}
+function StatRow({ icon, label, value, last }: StatRowProps) {
+  return (
+    <View style={[s.statRow, last && { borderBottomWidth: 0 }]}>
+      <View style={s.statRowIcon}>{icon}</View>
+      <Text style={s.statRowLabel}>{label}</Text>
+      <Text style={s.statRowValue}>{value}</Text>
     </View>
   );
 }
@@ -80,14 +147,31 @@ export default function RunDetailScreen() {
     enabled: !!id,
   });
 
-  const ch = data?.challenge ?? null;
+  const route = useMemo(() => decodeRoute(data?.routePolyline ?? null), [data?.routePolyline]);
 
-  const distanceKm = data?.distanceKm ?? 0;
-  const movingTime = data?.durationSec ?? 0;
-  const pace = data?.pace ?? '—';
-  const avgHr = data?.avgHeartRate ?? null;
-  const maxHr = data?.maxHeartRate ?? null;
-  const calories = data?.caloriesBurned ?? null;
+  if (isLoading) {
+    return (
+      <View style={[s.root, s.center]}>
+        <ActivityIndicator color={colors.brand} size="large" />
+      </View>
+    );
+  }
+  if (isError || !data) {
+    return (
+      <View style={[s.root, s.center]}>
+        <Text style={s.errorText}>Não foi possível carregar a corrida.</Text>
+      </View>
+    );
+  }
+
+  const distanceKm = data.distanceKm;
+  const durSec = data.durationSec ?? 0;
+  const pace = data.pace ?? '—';
+  const calories = data.caloriesBurned;
+  const avgHr = data.avgHeartRate;
+  const maxHr = data.maxHeartRate;
+  // Velocidade média em km/h (deriva de distância e duração).
+  const avgSpeedKph = durSec > 0 ? (distanceKm / durSec) * 3600 : null;
 
   return (
     <ScrollView
@@ -95,132 +179,141 @@ export default function RunDetailScreen() {
       contentContainerStyle={{ paddingBottom: insets.bottom + 32 }}
       showsVerticalScrollIndicator={false}
     >
-      {/* Top bar */}
+      {/* Top bar (botão voltar + status pill) */}
       <View style={[s.topBar, { paddingTop: insets.top + 8 }]}>
         <Pressable
           style={({ pressed }) => [s.backBtn, pressed && { opacity: 0.6 }]}
           onPress={() => router.back()}
         >
-          <Text style={s.backArrow}>←</Text>
-          <Text style={s.backLabel}>Corridas</Text>
+          <Text style={s.backArrow}>‹</Text>
         </Pressable>
-        {data?.counts ? (
+        {data.counts ? (
           <Text style={s.pillValid}>✓ CONTA</Text>
-        ) : data ? (
+        ) : (
           <Text style={s.pillInvalid}>NÃO CONTA</Text>
+        )}
+      </View>
+
+      {/* Header: nome / RUNNING / data */}
+      <View style={s.headerBlock}>
+        <Text style={s.headerKicker}>{data.title.toUpperCase()}</Text>
+        <View style={s.headerTypeRow}>
+          <RunnerGlyph size={24} color={colors.brand} strokeWidth={1.9} />
+          <Text style={s.headerType}>CORRIDA</Text>
+        </View>
+        <Text style={s.headerDate}>{fmtDate(data.startedAt)}</Text>
+        {!data.counts && data.skipReason ? (
+          <View style={s.skipBanner}>
+            <Text style={s.skipText}>⚠ {data.skipReason}</Text>
+          </View>
         ) : null}
       </View>
 
-      {isLoading ? (
-        <View style={s.loading}>
-          <ActivityIndicator color={colors.brand} size="large" />
-        </View>
-      ) : isError || !data ? (
-        <View style={s.loading}>
-          <Text style={s.errorText}>Não foi possível carregar a corrida.</Text>
+      {/* Mapa do percurso (full-bleed) */}
+      {route ? (
+        <View style={s.mapWrap} pointerEvents="none">
+          <MapView
+            style={StyleSheet.absoluteFill}
+            region={route.region}
+            scrollEnabled={false}
+            zoomEnabled={false}
+            rotateEnabled={false}
+            pitchEnabled={false}
+            toolbarEnabled={false}
+            loadingEnabled
+            loadingBackgroundColor={colors.card}
+          >
+            <Polyline coordinates={route.coords} strokeColor={colors.brand} strokeWidth={5} />
+          </MapView>
         </View>
       ) : (
-        <>
-          {/* Activity header */}
-          <View style={s.actHeader}>
-            <Text style={s.actDate}>{formatDate(data.startedAt)}</Text>
-            <Text style={s.actTitle} numberOfLines={2}>
-              {data.title}
-            </Text>
-            {!data.counts && data.skipReason ? (
-              <View style={s.skipBanner}>
-                <Text style={s.skipText}>⚠ {data.skipReason}</Text>
-              </View>
-            ) : null}
-          </View>
+        <View style={[s.mapWrap, s.mapPlaceholder]}>
+          <Text style={s.mapPlaceholderText}>Sem traçado salvo</Text>
+        </View>
+      )}
 
-          {/* Hero card */}
-          <View style={s.heroCard}>
-            <Text style={s.heroKm}>
-              {distanceKm.toFixed(2)}
-              <Text style={s.heroKmUnit}> km</Text>
-            </Text>
-            <View style={s.heroDivider} />
-            <View style={s.heroRow}>
-              <View style={s.heroStat}>
-                <Text style={s.heroStatValue}>{formatDuration(movingTime)}</Text>
-                <Text style={s.heroStatLabel}>Tempo em movimento</Text>
-              </View>
-              <View style={s.heroStatDivider} />
-              <View style={s.heroStat}>
-                <Text style={s.heroStatValue}>{pace}</Text>
-                <Text style={s.heroStatLabel}>Pace médio / km</Text>
-              </View>
+      {/* Stats grid 2×2 — destaque */}
+      <View style={s.statsGrid}>
+        <StatCard
+          icon={<DistanceIcon color={colors.brand} />}
+          value={distanceKm.toFixed(2)}
+          unit="km"
+          label="Distância"
+        />
+        <StatCard
+          icon={<StopwatchIcon color={colors.brand} />}
+          value={fmtDuration(durSec)}
+          label="Duração"
+        />
+        <StatCard icon={<PaceIcon color={colors.brand} />} value={pace} label="Pace médio /km" />
+        <StatCard
+          icon={<FlameStatIcon color={colors.brand} />}
+          value={calories ? String(Math.round(calories)) : '—'}
+          unit={calories ? 'kcal' : undefined}
+          label="Calorias"
+        />
+      </View>
+
+      {/* Lista detalhada — stats secundários */}
+      <View style={s.detailList}>
+        <StatRow
+          icon={<SpeedIcon color={colors.textDim} />}
+          label="Velocidade média"
+          value={avgSpeedKph ? `${avgSpeedKph.toFixed(1)} km/h` : '—'}
+        />
+        <StatRow
+          icon={<HeartIcon color={colors.textDim} />}
+          label="FC média"
+          value={avgHr ? `${Math.round(avgHr)} bpm` : '—'}
+        />
+        <StatRow
+          icon={<HeartIcon color={colors.textDim} />}
+          label="FC máxima"
+          value={maxHr ? `${Math.round(maxHr)} bpm` : '—'}
+          last
+        />
+      </View>
+
+      {/* Challenge card — meta do mês (mantido) */}
+      {data.challenge && (
+        <View style={s.section}>
+          <Text style={s.sectionTitle}>META DO MÊS</Text>
+          <View style={s.challengeCard}>
+            <Text style={s.challengeTitle}>{data.challenge.title}</Text>
+            <View style={s.challengeKmRow}>
+              <Text style={s.challengeKmDone}>{data.challenge.doneKm.toFixed(1)}</Text>
+              <Text style={s.challengeKmSep}> / </Text>
+              <Text style={s.challengeKmGoal}>{data.challenge.goalKm} km</Text>
+              <Text style={s.challengePct}> · {data.challenge.pct}%</Text>
             </View>
-          </View>
-
-          {/* Detail stats grid */}
-          <View style={s.section}>
-            <Text style={s.sectionTitle}>DETALHES</Text>
-            <View style={s.statsGrid}>
-              <StatItem
-                value={avgHr ? String(Math.round(avgHr)) : '—'}
-                unit={avgHr ? 'bpm' : undefined}
-                label="FC média"
+            <View style={s.barTrack}>
+              <View
+                style={[s.barFill, { width: `${Math.min(data.challenge.pct, 100)}%` as any }]}
               />
-              <StatItem
-                value={maxHr ? String(Math.round(maxHr)) : '—'}
-                unit={maxHr ? 'bpm' : undefined}
-                label="FC máxima"
-              />
-              <StatItem
-                value={calories ? String(Math.round(calories)) : '—'}
-                unit={calories ? 'kcal' : undefined}
-                label="Calorias"
-                accent={!!calories}
-              />
-              <StatItem value={pace} label="Pace médio / km" />
             </View>
-          </View>
-
-          {/* Challenge card */}
-          {ch && (
-            <View style={s.section}>
-              <Text style={s.sectionTitle}>META DO MÊS</Text>
-              <View style={s.challengeCard}>
-                <Text style={s.challengeTitle}>{ch.title}</Text>
-
-                <View style={s.challengeKmRow}>
-                  <Text style={s.challengeKmDone}>{ch.doneKm.toFixed(1)}</Text>
-                  <Text style={s.challengeKmSep}> / </Text>
-                  <Text style={s.challengeKmGoal}>{ch.goalKm} km</Text>
-                  <Text style={s.challengePct}> · {ch.pct}%</Text>
-                </View>
-
-                <View style={s.barTrack}>
-                  <View style={[s.barFill, { width: `${Math.min(ch.pct, 100)}%` as any }]} />
-                </View>
-
-                <View style={s.challengeFooter}>
-                  {ch.daysLeft > 0 ? (
-                    <>
-                      <View style={s.challengeStat}>
-                        <Text style={s.challengeStatValue}>{ch.daysLeft}</Text>
-                        <Text style={s.challengeStatLabel}>dias restantes</Text>
-                      </View>
-                      <View style={s.challengeStatDivider} />
-                      <View style={s.challengeStat}>
-                        <Text style={[s.challengeStatValue, { color: colors.brand }]}>
-                          {ch.kmPerDayNeeded.toFixed(1)}
-                        </Text>
-                        <Text style={s.challengeStatLabel}>km/dia necessários</Text>
-                      </View>
-                    </>
-                  ) : (
-                    <Text style={s.challengeFinished}>
-                      {ch.pct >= 100 ? '🏅 Meta batida!' : 'Desafio encerrado'}
+            <View style={s.challengeFooter}>
+              {data.challenge.daysLeft > 0 ? (
+                <>
+                  <View style={s.challengeStat}>
+                    <Text style={s.challengeStatValue}>{data.challenge.daysLeft}</Text>
+                    <Text style={s.challengeStatLabel}>dias restantes</Text>
+                  </View>
+                  <View style={s.challengeStatDivider} />
+                  <View style={s.challengeStat}>
+                    <Text style={[s.challengeStatValue, { color: colors.brand }]}>
+                      {data.challenge.kmPerDayNeeded.toFixed(1)}
                     </Text>
-                  )}
-                </View>
-              </View>
+                    <Text style={s.challengeStatLabel}>km/dia necessários</Text>
+                  </View>
+                </>
+              ) : (
+                <Text style={s.challengeFinished}>
+                  {data.challenge.pct >= 100 ? '🏅 Meta batida!' : 'Desafio encerrado'}
+                </Text>
+              )}
             </View>
-          )}
-        </>
+          </View>
+        </View>
       )}
     </ScrollView>
   );
@@ -228,18 +321,31 @@ export default function RunDetailScreen() {
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  center: { alignItems: 'center', justifyContent: 'center' },
+  errorText: { fontFamily: font.body, fontSize: 14, color: colors.textMute },
 
   topBar: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 20,
-    paddingBottom: 8,
+    paddingHorizontal: 16,
+    paddingBottom: 4,
   },
-  backBtn: { flexDirection: 'row', alignItems: 'center', gap: 6 },
-  backArrow: { fontSize: 20, color: colors.brand },
-  backLabel: { fontFamily: font.bodyBold, fontSize: 13, color: colors.brand },
-
+  backBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: 'rgba(255,255,255,0.05)',
+  },
+  backArrow: {
+    fontFamily: font.body,
+    fontSize: 28,
+    color: colors.text,
+    lineHeight: 30,
+    marginLeft: -2,
+  },
   pillValid: {
     fontFamily: font.bodyBold,
     fontSize: 10,
@@ -248,8 +354,8 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(95,184,168,0.4)',
     borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
   pillInvalid: {
     fontFamily: font.bodyBold,
@@ -259,36 +365,33 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: colors.line,
     borderRadius: 6,
-    paddingHorizontal: 8,
-    paddingVertical: 3,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
   },
 
-  loading: { flex: 1, alignItems: 'center', justifyContent: 'center', marginTop: 80 },
-  errorText: { fontFamily: font.body, fontSize: 14, color: colors.textMute },
-
-  actHeader: { paddingHorizontal: 20, paddingTop: 8, paddingBottom: 16 },
-  actDate: {
-    fontFamily: font.body,
-    fontSize: 12,
+  headerBlock: { paddingHorizontal: 22, paddingTop: 14, paddingBottom: 16 },
+  headerKicker: {
+    fontFamily: font.bodyBold,
+    fontSize: 11,
     color: colors.textMute,
-    marginBottom: 4,
-    textTransform: 'capitalize',
+    letterSpacing: 2,
   },
-  actTitle: {
+  headerTypeRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 8 },
+  headerType: {
     fontFamily: 'BebasNeue_400Regular',
     fontSize: 36,
     color: colors.text,
     lineHeight: 38,
-    letterSpacing: 0.4,
+    letterSpacing: 1,
   },
-  sourceTag: {
+  headerDate: {
     fontFamily: font.body,
-    fontSize: 11,
-    color: colors.brand,
+    fontSize: 13,
+    color: colors.textMute,
     marginTop: 4,
   },
   skipBanner: {
-    marginTop: 10,
+    marginTop: 12,
     padding: 10,
     borderRadius: 8,
     backgroundColor: 'rgba(255,107,107,0.08)',
@@ -297,55 +400,97 @@ const s = StyleSheet.create({
   },
   skipText: { fontFamily: font.body, fontSize: 12, color: colors.danger },
 
-  // Hero card
-  heroCard: {
-    marginHorizontal: 20,
-    marginBottom: 8,
-    padding: 24,
+  mapWrap: {
+    width: SCREEN_W,
+    height: 280,
+    backgroundColor: colors.card,
+    overflow: 'hidden',
+  },
+  mapPlaceholder: { alignItems: 'center', justifyContent: 'center' },
+  mapPlaceholderText: {
+    fontFamily: font.body,
+    fontSize: 12,
+    color: colors.textMute,
+    letterSpacing: 0.6,
+  },
+
+  // Grid 2x2 de stats principais
+  statsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    paddingHorizontal: 14,
+    paddingTop: 16,
+    gap: 10,
+  },
+  statCard: {
+    flexGrow: 1,
+    flexBasis: '47%',
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    gap: 8,
+  },
+  statIconWrap: {
+    width: 32,
+    height: 32,
     borderRadius: 16,
+    backgroundColor: 'rgba(95,184,168,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  statValueRow: { flexDirection: 'row', alignItems: 'baseline' },
+  statValue: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 30,
+    color: colors.text,
+    lineHeight: 32,
+    letterSpacing: 0.4,
+  },
+  statUnit: { fontFamily: font.body, fontSize: 12, color: colors.textMute },
+  statLabel: {
+    fontFamily: font.body,
+    fontSize: 11,
+    color: colors.textMute,
+    letterSpacing: 0.4,
+  },
+
+  // Lista detalhada (linhas com icone + label + valor à direita)
+  detailList: {
+    marginHorizontal: 14,
+    marginTop: 16,
+    borderRadius: 14,
     backgroundColor: colors.card,
     borderWidth: 1,
     borderColor: colors.line,
+    overflow: 'hidden',
+  },
+  statRow: {
+    flexDirection: 'row',
     alignItems: 'center',
+    paddingHorizontal: 14,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
   },
-  heroKm: {
+  statRowIcon: { width: 28, alignItems: 'center' },
+  statRowLabel: {
+    flex: 1,
+    fontFamily: font.bodyBold,
+    fontSize: 13,
+    color: colors.textDim,
+    marginLeft: 8,
+  },
+  statRowValue: {
     fontFamily: 'BebasNeue_400Regular',
-    fontSize: 72,
-    color: colors.text,
-    lineHeight: 74,
-    letterSpacing: 1,
-  },
-  heroKmUnit: {
-    fontFamily: font.body,
     fontSize: 18,
-    color: colors.textMute,
-  },
-  heroDivider: {
-    width: '80%',
-    height: 1,
-    backgroundColor: colors.line,
-    marginVertical: 16,
-  },
-  heroRow: { flexDirection: 'row', width: '100%' },
-  heroStat: { flex: 1, alignItems: 'center' },
-  heroStatDivider: { width: 1, backgroundColor: colors.line, marginHorizontal: 8 },
-  heroStatValue: {
-    fontFamily: 'BebasNeue_400Regular',
-    fontSize: 26,
     color: colors.text,
-    lineHeight: 28,
     letterSpacing: 0.4,
   },
-  heroStatLabel: {
-    fontFamily: font.body,
-    fontSize: 10,
-    color: colors.textMute,
-    marginTop: 4,
-    textAlign: 'center',
-  },
 
-  // Section
-  section: { paddingHorizontal: 20, marginTop: 20 },
+  // Challenge card
+  section: { paddingHorizontal: 14, marginTop: 22 },
   sectionTitle: {
     fontFamily: 'BebasNeue_400Regular',
     fontSize: 18,
@@ -353,100 +498,12 @@ const s = StyleSheet.create({
     letterSpacing: 1,
     marginBottom: 10,
   },
-
-  // Stats grid
-  statsGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: 4,
-  },
-  statItem: {
-    width: '50%',
-    padding: 16,
-  },
-  statValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 3 },
-  statValue: {
-    fontFamily: 'BebasNeue_400Regular',
-    fontSize: 28,
-    color: colors.text,
-    lineHeight: 30,
-    letterSpacing: 0.3,
-  },
-  statUnit: { fontFamily: font.body, fontSize: 11, color: colors.textMute },
-  statLabel: {
-    fontFamily: font.body,
-    fontSize: 11,
-    color: colors.textMute,
-    marginTop: 2,
-  },
-
-  // Splits
-  splitsCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.line,
-    overflow: 'hidden',
-  },
-  splitsHeader: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    backgroundColor: 'rgba(255,255,255,0.03)',
-  },
-  splitHeaderText: {
-    fontFamily: font.bodyBold,
-    fontSize: 10,
-    color: colors.textMute,
-    letterSpacing: 1,
-  },
-  splitRow: {
-    flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
-    alignItems: 'center',
-  },
-  splitRowLast: { borderBottomWidth: 0 },
-  splitCol: {
-    width: 36,
-    fontFamily: font.bodyBold,
-    fontSize: 13,
-    color: colors.textMute,
-  },
-  splitColMid: { flex: 1 },
-  splitColRight: { width: 64, textAlign: 'right' },
-  splitPace: {
-    fontFamily: 'BebasNeue_400Regular',
-    fontSize: 20,
-    lineHeight: 22,
-    letterSpacing: 0.3,
-  },
-  splitElev: {
-    fontFamily: font.body,
-    fontSize: 12,
-    color: colors.textMute,
-  },
-  splitHr: {
-    fontFamily: font.body,
-    fontSize: 12,
-    color: colors.textMute,
-  },
-
-  // Challenge card
   challengeCard: {
     backgroundColor: colors.card,
-    borderRadius: 16,
+    borderRadius: 14,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 20,
+    padding: 18,
   },
   challengeTitle: {
     fontFamily: font.bodyBold,
@@ -456,11 +513,7 @@ const s = StyleSheet.create({
     textTransform: 'uppercase',
     marginBottom: 10,
   },
-  challengeKmRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: 12,
-  },
+  challengeKmRow: { flexDirection: 'row', alignItems: 'baseline', marginBottom: 12 },
   challengeKmDone: {
     fontFamily: 'BebasNeue_400Regular',
     fontSize: 36,
@@ -468,11 +521,7 @@ const s = StyleSheet.create({
     lineHeight: 38,
     letterSpacing: 0.5,
   },
-  challengeKmSep: {
-    fontFamily: font.body,
-    fontSize: 18,
-    color: colors.textMute,
-  },
+  challengeKmSep: { fontFamily: font.body, fontSize: 18, color: colors.textMute },
   challengeKmGoal: {
     fontFamily: 'BebasNeue_400Regular',
     fontSize: 24,
@@ -521,20 +570,5 @@ const s = StyleSheet.create({
     color: colors.text,
     flex: 1,
     textAlign: 'center',
-  },
-
-  // Description
-  descCard: {
-    backgroundColor: colors.card,
-    borderRadius: 16,
-    borderWidth: 1,
-    borderColor: colors.line,
-    padding: 16,
-  },
-  descText: {
-    fontFamily: font.body,
-    fontSize: 13,
-    color: colors.textDim,
-    lineHeight: 20,
   },
 });

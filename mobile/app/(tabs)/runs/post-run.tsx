@@ -1,9 +1,11 @@
+import polylineCodec from '@mapbox/polyline';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useQueryClient } from '@tanstack/react-query';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Alert,
+  Dimensions,
   KeyboardAvoidingView,
   Modal,
   Platform,
@@ -14,12 +16,53 @@ import {
   TextInput,
   View,
 } from 'react-native';
+import MapView, { Polyline, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import {
+  DistanceIcon,
+  FlameStatIcon,
+  HeartIcon,
+  MountainIcon,
+  PaceIcon,
+  StopwatchIcon,
+} from '../../../src/components/UiIcons';
 import { api } from '../../../src/lib/api';
 import { saveRunToHealth } from '../../../src/lib/healthKit';
 import { colors, font } from '../../../src/lib/tokens';
 import { COORDS_KEY } from '../../../src/tasks/locationTask';
+
+const { width: SCREEN_W } = Dimensions.get('window');
+
+// Decode polyline → coords + região; null se vazio/curto (caller esconde o mapa).
+function decodeRouteRegion(encoded: string | undefined) {
+  if (!encoded) return null;
+  let pairs: [number, number][] = [];
+  try {
+    pairs = polylineCodec.decode(encoded);
+  } catch {
+    return null;
+  }
+  if (pairs.length < 2) return null;
+  const coords = pairs.map(([latitude, longitude]) => ({ latitude, longitude }));
+  let minLat = coords[0].latitude;
+  let maxLat = coords[0].latitude;
+  let minLng = coords[0].longitude;
+  let maxLng = coords[0].longitude;
+  for (const c of coords) {
+    minLat = Math.min(minLat, c.latitude);
+    maxLat = Math.max(maxLat, c.latitude);
+    minLng = Math.min(minLng, c.longitude);
+    maxLng = Math.max(maxLng, c.longitude);
+  }
+  const region: Region = {
+    latitude: (minLat + maxLat) / 2,
+    longitude: (minLng + maxLng) / 2,
+    latitudeDelta: Math.max((maxLat - minLat) * 1.4, 0.005),
+    longitudeDelta: Math.max((maxLng - minLng) * 1.4, 0.005),
+  };
+  return { coords, region };
+}
 
 const SURFACES = [
   { key: 'asfalto', label: 'Asfalto' },
@@ -85,6 +128,8 @@ export default function PostRunScreen() {
   const [note, setNote] = useState('');
   const [saving, setSaving] = useState(false);
   const [result, setResult] = useState<{ newBest: boolean } | null>(null);
+
+  const route = useMemo(() => decodeRouteRegion(params.routePolyline), [params.routePolyline]);
 
   const paceSec = distanceKm > 0 ? durationSeconds / distanceKm : 0;
   const timeOfDay = startedAt.toLocaleTimeString('pt-BR', {
@@ -154,19 +199,80 @@ export default function PostRunScreen() {
           {dateLabel} · {timeOfDay}
         </Text>
 
+        {/* Mapa do percurso (full-bleed, mesmo padrão do detalhe da corrida) */}
+        {route ? (
+          <View style={s.mapWrap} pointerEvents="none">
+            <MapView
+              style={StyleSheet.absoluteFill}
+              region={route.region}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              toolbarEnabled={false}
+              loadingEnabled
+              loadingBackgroundColor={colors.card}
+            >
+              <Polyline coordinates={route.coords} strokeColor={colors.brand} strokeWidth={5} />
+            </MapView>
+          </View>
+        ) : null}
+
+        {/* Grid de stats com ícones (mesmo padrão do detalhe) */}
         <View style={s.metricsGrid}>
-          <Metric value={distanceKm.toFixed(2)} unit="km" label="Distância" />
-          <Metric value={fmtTime(durationSeconds)} label="Tempo movimento" />
-          <Metric value={fmtPace(paceSec)} label="Pace médio" />
+          <Metric
+            icon={<DistanceIcon color={colors.brand} />}
+            value={distanceKm.toFixed(2)}
+            unit="km"
+            label="Distância"
+          />
+          <Metric
+            icon={<StopwatchIcon color={colors.brand} />}
+            value={fmtTime(durationSeconds)}
+            label="Tempo"
+          />
+          <Metric
+            icon={<PaceIcon color={colors.brand} />}
+            value={fmtPace(paceSec)}
+            label="Pace médio /km"
+          />
+          <Metric
+            icon={<FlameStatIcon color={colors.brand} />}
+            value={calories > 0 ? String(calories) : '—'}
+            unit={calories > 0 ? 'kcal' : undefined}
+            label="Calorias"
+          />
           {elevationGain > 0 ? (
-            <Metric value={String(elevationGain)} unit="m" label="Ganho elevação" />
+            <Metric
+              icon={<MountainIcon color={colors.brand} />}
+              value={String(elevationGain)}
+              unit="m"
+              label="Elevação"
+            />
           ) : null}
-          {steps > 0 ? <Metric value={steps.toLocaleString('pt-BR')} label="Passos" /> : null}
-          {calories > 0 ? <Metric value={String(calories)} unit="kcal" label="Calorias" /> : null}
           {avgHeartRate ? (
-            <Metric value={String(avgHeartRate)} unit="bpm" label="FC média" />
+            <Metric
+              icon={<HeartIcon color={colors.brand} />}
+              value={String(avgHeartRate)}
+              unit="bpm"
+              label="FC média"
+            />
           ) : null}
-          {maxHeartRate ? <Metric value={String(maxHeartRate)} unit="bpm" label="FC máx" /> : null}
+          {maxHeartRate ? (
+            <Metric
+              icon={<HeartIcon color={colors.brand} />}
+              value={String(maxHeartRate)}
+              unit="bpm"
+              label="FC máx"
+            />
+          ) : null}
+          {steps > 0 ? (
+            <Metric
+              icon={<DistanceIcon color={colors.brand} />}
+              value={steps.toLocaleString('pt-BR')}
+              label="Passos"
+            />
+          ) : null}
         </View>
 
         <Section title="COMO VOCÊ SE SENTIU?">
@@ -271,12 +377,23 @@ function Section({ title, children }: { title: string; children: React.ReactNode
   );
 }
 
-function Metric({ value, unit, label }: { value: string; unit?: string; label: string }) {
+function Metric({
+  icon,
+  value,
+  unit,
+  label,
+}: {
+  icon?: React.ReactNode;
+  value: string;
+  unit?: string;
+  label: string;
+}) {
   return (
     <View style={s.metric}>
+      {icon ? <View style={s.metricIconWrap}>{icon}</View> : null}
       <View style={s.metricValueRow}>
         <Text style={s.metricValue}>{value}</Text>
-        {unit ? <Text style={s.metricUnit}>{unit}</Text> : null}
+        {unit ? <Text style={s.metricUnit}> {unit}</Text> : null}
       </View>
       <Text style={s.metricLabel}>{label}</Text>
     </View>
@@ -387,21 +504,54 @@ const s = StyleSheet.create({
     marginTop: 6,
     marginBottom: 22,
   },
+  // Mapa full-bleed do percurso (mesmo padrão do detalhe)
+  mapWrap: {
+    width: SCREEN_W,
+    height: 220,
+    marginHorizontal: -20, // estende além do paddingHorizontal do scroll (= -20)
+    marginTop: 16,
+    backgroundColor: colors.card,
+    overflow: 'hidden',
+  },
+  // Grid 2 colunas de stats com ícone (estilo card)
   metricsGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: 10,
+    marginTop: 16,
     marginBottom: 8,
   },
-  metric: { minWidth: '28%', flexGrow: 1 },
-  metricValueRow: { flexDirection: 'row', alignItems: 'baseline', gap: 4 },
-  metricValue: { color: colors.text, fontFamily: font.bodyBold, fontSize: 24 },
-  metricUnit: { color: colors.textDim, fontFamily: font.body, fontSize: 12 },
+  metric: {
+    flexGrow: 1,
+    flexBasis: '47%',
+    backgroundColor: colors.card,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: colors.line,
+    padding: 14,
+    gap: 8,
+  },
+  metricIconWrap: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    backgroundColor: 'rgba(95,184,168,0.10)',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  metricValueRow: { flexDirection: 'row', alignItems: 'baseline' },
+  metricValue: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 30,
+    color: colors.text,
+    lineHeight: 32,
+    letterSpacing: 0.4,
+  },
+  metricUnit: { fontFamily: font.body, fontSize: 12, color: colors.textMute },
   metricLabel: {
-    color: colors.textMute,
     fontFamily: font.body,
     fontSize: 11,
-    marginTop: 2,
+    color: colors.textMute,
     letterSpacing: 0.4,
   },
   section: { marginTop: 24 },

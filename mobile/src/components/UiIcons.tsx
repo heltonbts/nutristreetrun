@@ -87,3 +87,103 @@ export function CameraIcon({ size = 22, color = colors.text, strokeWidth = 1.9 }
     </Svg>
   );
 }
+
+// ─── Stats icons (cartões de detalhe da corrida) ──────────────────────────────
+// Família visual coesa: outline puro, viewBox 24, strokeWidth padrão 1.7.
+
+/** Cronômetro — duração da corrida. */
+export function StopwatchIcon({ size = 22, color = colors.text, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path d="M10 2h4" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      <Path d="M12 14V9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      <Circle cx={12} cy={14} r={8} stroke={color} strokeWidth={strokeWidth} />
+    </Svg>
+  );
+}
+
+/** Distância — bandeira/pino indicando trajeto. */
+export function DistanceIcon({ size = 22, color = colors.text, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 21s-7-6.5-7-12a7 7 0 1 1 14 0c0 5.5-7 12-7 12Z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+      />
+      <Circle cx={12} cy={9} r={2.5} stroke={color} strokeWidth={strokeWidth} />
+    </Svg>
+  );
+}
+
+/** Pace — relógio com pequena seta indicando ritmo. */
+export function PaceIcon({ size = 22, color = colors.text, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Circle cx={12} cy={12} r={9} stroke={color} strokeWidth={strokeWidth} />
+      <Path d="M12 7v5l3 2" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+    </Svg>
+  );
+}
+
+/** Velocidade — velocímetro estilizado (semicírculo + ponteiro). */
+export function SpeedIcon({ size = 22, color = colors.text, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M4 17a8 8 0 1 1 16 0"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+      <Path d="M12 17 16 9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      <Circle cx={12} cy={17} r={1.3} fill={color} />
+    </Svg>
+  );
+}
+
+/** Chama — calorias (intencionalmente diferente do FireIcon de reação:
+ *  esta é monoline, sem chama interna; menos chamativa, "decora" o stat). */
+export function FlameStatIcon({ size = 22, color = colors.text, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.4-.5-2-1-3-1.07-2.14-.22-4.05 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.15.43-2.29 1-3a2.5 2.5 0 0 0 2.5 2.5Z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/** Montanha — elevação (gain/loss/max). */
+export function MountainIcon({ size = 22, color = colors.text, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M3 19 9 9l4 6 2-3 6 7Z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/** Coração — frequência cardíaca. Outline (filled fica confuso em stat card). */
+export function HeartIcon({ size = 22, color = colors.text, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 21s-7.5-5-7.5-11A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 7.5 3c0 6-7.5 11-7.5 11Z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
