@@ -37,6 +37,41 @@ export function CloseIcon({ size = 20, color = colors.text, strokeWidth = 2 }: I
   );
 }
 
+/**
+ * Runner — corredor em movimento (substitui 🏃 nas linhas de atividade).
+ * Outline puro pra casar com o resto da família (Fire/Clap/Comment).
+ */
+export function RunnerGlyph({ size = 22, color = colors.text, strokeWidth = 1.9 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      {/* cabeça */}
+      <Circle cx={15} cy={5} r={1.9} stroke={color} strokeWidth={strokeWidth} fill="none" />
+      {/* tronco inclinado pra frente */}
+      <Path d="M14.5 7.5 11 13" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      {/* braço da frente (esticado pra frente e cima) */}
+      <Path d="M14 9 18 11" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      {/* braço de trás (dobrado pra trás) */}
+      <Path d="M13 9.5 9 9" stroke={color} strokeWidth={strokeWidth} strokeLinecap="round" />
+      {/* perna da frente (joelho dobrado, pé apoiando) */}
+      <Path
+        d="M11 13 15 17 13.5 21"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+      {/* perna de trás (esticada empurrando) */}
+      <Path
+        d="M11 13 8 17 9 21"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+        strokeLinejoin="round"
+      />
+    </Svg>
+  );
+}
+
 /** Câmera — botão de adicionar foto. */
 export function CameraIcon({ size = 22, color = colors.text, strokeWidth = 1.9 }: IconProps) {
   return (

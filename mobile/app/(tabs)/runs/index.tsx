@@ -12,7 +12,9 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RouteThumbnail } from '../../../src/components/RouteThumbnail';
 import { ScreenTransition } from '../../../src/components/ScreenTransition';
+import { RunnerGlyph } from '../../../src/components/UiIcons';
 import { api } from '../../../src/lib/api';
 import { colors, font } from '../../../src/lib/tokens';
 
@@ -25,6 +27,7 @@ interface Activity {
   counts: boolean;
   skipReason: string | null;
   startedAt: string;
+  routePolyline: string | null;
 }
 
 interface Challenge {
@@ -168,13 +171,19 @@ function SummaryCard({ summary }: { summary: Summary }) {
   );
 }
 
-function RunnerIcon({ valid }: { valid: boolean }) {
+function RunnerIcon({ valid, routePolyline }: { valid: boolean; routePolyline: string | null }) {
   const stroke = valid ? colors.brand : colors.textMute;
   const bg = valid ? 'rgba(95,184,168,0.12)' : 'rgba(255,255,255,0.04)';
   const border = valid ? 'rgba(95,184,168,0.28)' : colors.line;
+  // Tem rota? mostra mini-traçado (cada linha do histórico fica única).
+  // Sem rota (corridas antigas/sem GPS): cai no glifo de corredor.
   return (
     <View style={[s.actIcon, { backgroundColor: bg, borderColor: border }]}>
-      <Text style={{ color: stroke, fontSize: 18 }}>🏃</Text>
+      {routePolyline ? (
+        <RouteThumbnail encoded={routePolyline} size={28} color={stroke} strokeWidth={1.8} />
+      ) : (
+        <RunnerGlyph size={20} color={stroke} strokeWidth={1.9} />
+      )}
     </View>
   );
 }
@@ -186,7 +195,7 @@ function ActivityRow({ act }: { act: Activity }) {
       style={({ pressed }) => [s.actRow, pressed && { opacity: 0.7 }]}
       onPress={() => router.push(`/runs/${act.id}`)}
     >
-      <RunnerIcon valid={act.counts} />
+      <RunnerIcon valid={act.counts} routePolyline={act.routePolyline} />
       <View style={s.actInfo}>
         <Text style={s.actTitle} numberOfLines={1}>
           {act.title}
