@@ -20,7 +20,9 @@ import MapView, { Polyline, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle } from 'react-native-svg';
 
+import { api } from '../../../src/lib/api';
 import {
+  estimateCaloriesBurned,
   getCaloriesBurned,
   getHeartRateStats,
   getLatestHeartRate,
@@ -97,6 +99,48 @@ function elevationGainM(coords: TrackedCoord[]): number {
     lastAlt = c.alt;
   }
   return Math.round(gain);
+}
+
+// Mesma lógica, agora somando quedas ≥ 1m (filtra jitter).
+function elevationLossM(coords: TrackedCoord[]): number {
+  let loss = 0;
+  let lastAlt: number | null = null;
+  for (const c of coords) {
+    if (c.alt == null) continue;
+    if (lastAlt != null && c.alt < lastAlt - 1) loss += lastAlt - c.alt;
+    lastAlt = c.alt;
+  }
+  return Math.round(loss);
+}
+
+function maxElevationM(coords: TrackedCoord[]): number | null {
+  let maxAlt: number | null = null;
+  for (const c of coords) {
+    if (c.alt == null) continue;
+    if (maxAlt == null || c.alt > maxAlt) maxAlt = c.alt;
+  }
+  return maxAlt != null ? Math.round(maxAlt) : null;
+}
+
+/**
+ * Velocidade máxima em km/h. GPS tem picos absurdos (bound-up de erro),
+ * então filtra: ignora segmento com distância < 30m ou intervalo < 2s
+ * (sample muito curto = ruído amplificado), e descarta velocidades > 30 km/h
+ * (impossível na corrida; provável jitter).
+ */
+function maxSpeedKph(coords: TrackedCoord[]): number {
+  let max = 0;
+  for (let i = 1; i < coords.length; i++) {
+    const a = coords[i - 1];
+    const b = coords[i];
+    const distM = haversineKm(a.lat, a.lng, b.lat, b.lng) * 1000;
+    const dtSec = (b.timestamp - a.timestamp) / 1000;
+    if (distM < 30 || dtSec < 2) continue;
+    const kph = (distM / dtSec) * 3.6;
+    if (kph > 30) continue; // jitter
+    if (kph > max) max = kph;
+  }
+  return Math.round(max * 10) / 10;
 }
 
 function fmtPace(sec: number | null): string {
@@ -189,6 +233,10 @@ export default function TrackerScreen() {
   const endedAtRef = useRef<Date | null>(null);
   const startedAtRef = useRef<Date | null>(null);
   const pausedAtRef = useRef<number>(0);
+  // Pause tracking — pauseStartRef marca quando pausou (Date.now), e
+  // totalPauseSecRef acumula a soma de todas as pausas até o save.
+  const pauseStartRef = useRef<number | null>(null);
+  const totalPauseSecRef = useRef<number>(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const watchRef = useRef<Location.LocationSubscription | null>(null);
   const holdProgress = useRef(new Animated.Value(0)).current;
@@ -447,6 +495,8 @@ export default function TrackerScreen() {
     setCoords([]);
     setElapsedSec(0);
     pausedAtRef.current = 0;
+    pauseStartRef.current = null;
+    totalPauseSecRef.current = 0;
     startedAtRef.current = new Date();
 
     watchRef.current = await Location.watchPositionAsync(
@@ -502,10 +552,15 @@ export default function TrackerScreen() {
     watchRef.current = null;
     if (timerRef.current) clearInterval(timerRef.current);
     pausedAtRef.current = elapsedSec;
+    pauseStartRef.current = Date.now();
     setStatus('paused');
   }
 
   async function resumeRun() {
+    if (pauseStartRef.current != null) {
+      totalPauseSecRef.current += (Date.now() - pauseStartRef.current) / 1000;
+      pauseStartRef.current = null;
+    }
     watchRef.current = await Location.watchPositionAsync(
       { accuracy: Location.Accuracy.BestForNavigation, distanceInterval: 5 },
       (loc) => {
@@ -542,12 +597,21 @@ export default function TrackerScreen() {
           endedAtRef.current = new Date();
           setStatus('finished');
           if (startedAtRef.current) {
-            const [stats, cal, steps] = await Promise.all([
+            const [stats, cal, steps, weightKg] = await Promise.all([
               getHeartRateStats(startedAtRef.current, endedAtRef.current!),
               getCaloriesBurned(startedAtRef.current, endedAtRef.current!),
               getStepCount(startedAtRef.current, endedAtRef.current!),
+              // peso do usuário pra fallback de calorias quando HealthKit dá 0
+              api
+                .get<{ user: { weightKg: number | null } }>('/profile')
+                .then((r) => r.data.user?.weightKg ?? null)
+                .catch(() => null),
             ]);
-            setHrStats({ avg: stats.avg, max: stats.max, calories: cal });
+            // Se HealthKit não tem dados (sem Apple Watch / sem permissão),
+            // estima via MET clássico (ver healthKit.ts).
+            const finalCal =
+              cal > 0 ? cal : estimateCaloriesBurned(totalKm(coords), elapsedSec, weightKg);
+            setHrStats({ avg: stats.avg, max: stats.max, calories: finalCal });
             setStepsCount(steps);
           }
         },
@@ -561,9 +625,15 @@ export default function TrackerScreen() {
       Alert.alert('Corrida muito curta', 'Percorra pelo menos 100 metros para salvar.');
       return;
     }
-    const elevation = elevationGainM(coords);
+    const elevGain = elevationGainM(coords);
+    const elevLoss = elevationLossM(coords);
+    const maxElev = maxElevationM(coords);
+    const maxSpd = maxSpeedKph(coords);
+    const pauseSec = Math.round(totalPauseSecRef.current);
     const routePolyline =
       coords.length > 1 ? polylineCodec.encode(coords.map((c) => [c.lat, c.lng])) : '';
+    // splits ja vivem em `splits` state; serializa pra string pra passar via params
+    const splitsJson = splits.length > 0 ? JSON.stringify(splits) : '';
     router.push({
       pathname: '/(tabs)/runs/post-run',
       params: {
@@ -571,10 +641,15 @@ export default function TrackerScreen() {
         durationSeconds: String(elapsedSec),
         startedAt: startedAtRef.current!.toISOString(),
         ...(routePolyline && { routePolyline }),
+        ...(splitsJson && { splits: splitsJson }),
         ...(hrStats.avg && { avgHeartRate: String(hrStats.avg) }),
         ...(hrStats.max && { maxHeartRate: String(hrStats.max) }),
         ...(hrStats.calories > 0 && { calories: String(hrStats.calories) }),
-        ...(elevation > 0 && { elevationGain: String(elevation) }),
+        ...(elevGain > 0 && { elevationGain: String(elevGain) }),
+        ...(elevLoss > 0 && { elevationLoss: String(elevLoss) }),
+        ...(maxElev != null && { maxElevation: String(maxElev) }),
+        ...(maxSpd > 0 && { maxSpeed: String(maxSpd) }),
+        ...(pauseSec > 0 && { pauseSec: String(pauseSec) }),
         ...(stepsCount > 0 && { steps: String(stepsCount) }),
       },
     });

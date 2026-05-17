@@ -107,6 +107,40 @@ export async function getCaloriesBurned(from: Date, to: Date): Promise<number> {
   }
 }
 
+/**
+ * Estimativa client-side de calorias quando HealthKit não tem dados
+ * (sem Apple Watch, sem permissão, ou iPhone sozinho — que não calcula
+ * kcal de corrida automaticamente). Fórmula MET clássica:
+ *
+ *   kcal = MET × peso_kg × horas
+ *
+ * MET varia pelo pace (ACSM compendium aproximado):
+ *   pace < 4'30"/km → 11.5 (forte)
+ *   pace < 5'30"/km → 9.8  (moderada)
+ *   pace < 7'00"/km → 8.3  (leve)
+ *   pace < 9'00"/km → 7.0  (trote)
+ *   senão            → 4.0  (caminhada)
+ *
+ * Use só como fallback — o valor do HealthKit (se houver) é sempre melhor.
+ */
+export function estimateCaloriesBurned(
+  distanceKm: number,
+  durationSec: number,
+  weightKg: number | null,
+): number {
+  if (distanceKm <= 0 || durationSec <= 0) return 0;
+  const paceSecPerKm = durationSec / distanceKm;
+  let met: number;
+  if (paceSecPerKm < 270) met = 11.5;
+  else if (paceSecPerKm < 330) met = 9.8;
+  else if (paceSecPerKm < 420) met = 8.3;
+  else if (paceSecPerKm < 540) met = 7.0;
+  else met = 4.0;
+  const kg = weightKg && weightKg > 30 && weightKg < 250 ? weightKg : 70; // sanity
+  const hours = durationSec / 3600;
+  return Math.round(met * kg * hours);
+}
+
 export async function getStepCount(from: Date, to: Date): Promise<number> {
   if (!HK) return 0;
   try {
