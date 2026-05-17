@@ -20,6 +20,7 @@ import {
 import MapView, { Polyline, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { ClapIcon, CommentIcon, FireIcon } from '../../src/components/ReactionIcons';
 import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
@@ -198,15 +199,23 @@ function ReactionBar({
 
   return (
     <View style={s.reactionBar}>
-      <Pressable style={s.reactionBtn} onPress={() => toggle('fire')}>
-        <Text style={s.reactionEmoji}>🔥</Text>
+      <Pressable
+        style={({ pressed }) => [s.reactionBtn, pressed && { opacity: 0.6 }]}
+        onPress={() => toggle('fire')}
+        hitSlop={6}
+      >
+        <FireIcon active={fire.myReaction} size={22} />
         <Text style={[s.reactionCount, fire.myReaction && s.reactionActive]}>
           {fire.count > 0 ? fire.count : ''}
         </Text>
       </Pressable>
 
-      <Pressable style={s.reactionBtn} onPress={() => toggle('clap')}>
-        <Text style={s.reactionEmoji}>👏</Text>
+      <Pressable
+        style={({ pressed }) => [s.reactionBtn, pressed && { opacity: 0.6 }]}
+        onPress={() => toggle('clap')}
+        hitSlop={6}
+      >
+        <ClapIcon active={clap.myReaction} size={22} />
         <Text style={[s.reactionCount, clap.myReaction && s.reactionActive]}>
           {clap.count > 0 ? clap.count : ''}
         </Text>
@@ -214,8 +223,12 @@ function ReactionBar({
 
       <View style={s.reactionDivider} />
 
-      <Pressable style={s.reactionBtn} onPress={onComments}>
-        <Text style={s.reactionEmoji}>💬</Text>
+      <Pressable
+        style={({ pressed }) => [s.reactionBtn, pressed && { opacity: 0.6 }]}
+        onPress={onComments}
+        hitSlop={6}
+      >
+        <CommentIcon size={22} />
         <Text style={s.reactionCount}>{commentsCount > 0 ? commentsCount : ''}</Text>
       </Pressable>
     </View>
@@ -762,7 +775,7 @@ const s = StyleSheet.create({
   },
   loading: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   loadingMore: { paddingVertical: 20, alignItems: 'center' },
-  list: { paddingHorizontal: 16, gap: 10, paddingTop: 4 },
+  list: { paddingHorizontal: 14, gap: 14, paddingTop: 4 },
 
   // Avatar fallback
   avatarFallback: {
@@ -781,54 +794,60 @@ const s = StyleSheet.create({
     borderRadius: 16,
     borderWidth: 1,
     borderColor: colors.line,
-    padding: 14,
-    gap: 10,
+    padding: 18,
+    gap: 16,
   },
-  actHead: { gap: 2 },
+  actHead: { gap: 4 },
   actKicker: {
     fontFamily: font.bodyBold,
     fontSize: 11,
     color: colors.brand,
-    letterSpacing: 2,
+    letterSpacing: 2.2,
   },
   actName: {
     fontFamily: 'BebasNeue_400Regular',
-    fontSize: 26,
+    fontSize: 38,
     color: colors.text,
-    lineHeight: 28,
-    letterSpacing: 0.4,
+    lineHeight: 40,
+    letterSpacing: 0.6,
   },
   actStatsRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 4,
+    paddingVertical: 2,
   },
   actStat: { flex: 1, alignItems: 'flex-start' },
   actStatDivider: {
     width: 1,
-    height: 28,
+    height: 38,
     backgroundColor: colors.line,
     marginHorizontal: 12,
   },
   actStatValue: {
     fontFamily: 'BebasNeue_400Regular',
-    fontSize: 26,
+    fontSize: 34,
     color: colors.text,
-    lineHeight: 28,
+    lineHeight: 36,
     letterSpacing: 0.4,
   },
   actStatLabel: {
     fontFamily: font.body,
-    fontSize: 11,
+    fontSize: 12,
     color: colors.textMute,
-    marginTop: 1,
+    marginTop: 2,
+    letterSpacing: 0.3,
   },
+  // Mapa full-bleed lateral: estende -18 (= card padding) pra dar a
+  // sensação adidas-like. Não puxa pra baixo porque a ReactionBar
+  // vem depois e precisa do seu próprio espaço.
   actMapWrap: {
-    height: 180,
-    borderRadius: 12,
+    height: 240,
+    marginHorizontal: -18,
     overflow: 'hidden',
-    borderWidth: 1,
-    borderColor: colors.line,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
     backgroundColor: colors.bg,
   },
   actMap: { flex: 1 },
@@ -925,7 +944,6 @@ const s = StyleSheet.create({
     borderRadius: 20,
     backgroundColor: 'rgba(255,255,255,0.04)',
   },
-  reactionEmoji: { fontSize: 15 },
   reactionCount: {
     fontFamily: font.bodyMedium,
     fontSize: 12,
