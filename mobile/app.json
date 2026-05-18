@@ -15,6 +15,7 @@
     "ios": {
       "supportsTablet": false,
       "bundleIdentifier": "com.nutristreetrun.app",
+      "appleTeamId": "VX9JJ95Z78",
       "buildNumber": "2",
       "entitlements": {
         "com.apple.developer.healthkit": true,
