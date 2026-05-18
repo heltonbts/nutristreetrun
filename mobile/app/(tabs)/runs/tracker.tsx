@@ -390,7 +390,10 @@ export default function TrackerScreen() {
     const dist = totalKm(coords);
     const pace = avgPaceSec(dist, elapsedSec) ?? 0;
     const kmProg = Math.min(dist - Math.floor(dist), 1);
-    updateRunActivity(dist, elapsedSec, pace, kmProg);
+    // Calorias estimadas em tempo real (peso real só no fim; aqui usa
+    // fallback ~70kg dentro de estimateCaloriesBurned — bom o bastante p/ display)
+    const liveCal = estimateCaloriesBurned(dist, elapsedSec, null);
+    updateRunActivity(dist, elapsedSec, pace, kmProg, liveCal);
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [Math.floor(elapsedSec / 5), status]);
 

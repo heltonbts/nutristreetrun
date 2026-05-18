@@ -18,9 +18,11 @@
       "buildNumber": "2",
       "entitlements": {
         "com.apple.developer.healthkit": true,
-        "com.apple.developer.healthkit.background-delivery": true
+        "com.apple.developer.healthkit.background-delivery": true,
+        "com.apple.security.application-groups": ["group.com.nutristreetrun.app"]
       },
       "infoPlist": {
+        "NSSupportsLiveActivities": true,
         "NSPhotoLibraryUsageDescription": "Usado para enviar foto de perfil e publicar no feed.",
         "NSCameraUsageDescription": "Usado para tirar foto de perfil e publicar no feed.",
         "NSHealthShareUsageDescription": "Usado para importar suas corridas automaticamente.",
@@ -77,7 +79,8 @@
           "photosPermission": "Usado para enviar foto de perfil e publicar no feed.",
           "cameraPermission": "Usado para tirar foto de perfil e publicar no feed."
         }
-      ]
+      ],
+      "@bacons/apple-targets"
     ]
   }
 }
