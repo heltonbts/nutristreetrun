@@ -288,7 +288,8 @@ export default function RunsScreen() {
     .toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })
     .toUpperCase();
 
-  const validActs = activities?.filter((a) => a.counts) ?? [];
+  const actList = Array.isArray(activities) ? activities : [];
+  const validActs = actList.filter((a) => a.counts);
   const totalKm = validActs.reduce((s, a) => s + a.distanceKm, 0);
   const validCount = validActs.length;
 

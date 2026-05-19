@@ -1,10 +1,20 @@
 import { useQuery } from '@tanstack/react-query';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef, useState } from 'react';
-import { Animated, Dimensions, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import {
+  Animated,
+  Dimensions,
+  Easing,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Svg, { Circle, Defs, Path, Polygon, RadialGradient, Rect, Stop } from 'react-native-svg';
 
+import { HomeBanner } from '../../src/components/HomeBanner';
 import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
@@ -42,6 +52,108 @@ function fmtSource(src: string) {
   if (src === 'STRAVA') return 'Importada';
   if (src === 'HEALTH') return 'Apple Health';
   return src;
+}
+
+// Sprite frames do mascote (ciclo de caminhada). Fora do componente pra
+// require() ser resolvido uma vez só e o array não recriar a cada render.
+const MASCOT_FRAMES = [
+  require('../../assets/motion/frame1.png'),
+  require('../../assets/motion/frame2.png'),
+  require('../../assets/motion/frame3.png'),
+  require('../../assets/motion/frame4.png'),
+  require('../../assets/motion/frame5.png'),
+  require('../../assets/motion/frame6.png'),
+];
+// Pose final, de frente (parado) — quando ele chega no destino.
+const MASCOT_FRONT = require('../../assets/mascot.png');
+const MASCOT_FPS = 9; // ~9 quadros/s dá um trote convincente na travessia
+
+/**
+ * Mascote que atravessa a tela: entra pelo extremo esquerdo andando (ciclo de
+ * frames + espelhado pra olhar pra direita), percorre até a medalha e, ao chegar,
+ * vira de frente (crossfade pro sprite parado) e fica lá.
+ */
+// Renderizado como filho ABSOLUTO do wrapper da medalha (medalSize x medalSize).
+// Fica ancorado por right/bottom no canto — não tem como sair da tela.
+// O translateX (de -screenW até 0) faz a travessia da esquerda até o canto.
+function MascotWalker({ medalSize }: { medalSize: number }) {
+  const screenW = Dimensions.get('window').width;
+  const w = medalSize * 0.62; // tamanho fixo do mascote (menor que a medalha)
+
+  const progress = useRef(new Animated.Value(0)).current;
+  const bob = useRef(new Animated.Value(0)).current;
+  const [frame, setFrame] = useState(0);
+  const [arrived, setArrived] = useState(false);
+
+  useEffect(() => {
+    const duration = Math.max(2400, Math.min(4200, screenW * 7.5));
+
+    const bobLoop = Animated.loop(
+      Animated.sequence([
+        Animated.timing(bob, { toValue: 1, duration: 220, useNativeDriver: true }),
+        Animated.timing(bob, { toValue: 0, duration: 220, useNativeDriver: true }),
+      ]),
+    );
+    bobLoop.start();
+
+    const id = setInterval(
+      () => setFrame((f) => (f + 1) % MASCOT_FRAMES.length),
+      1000 / MASCOT_FPS,
+    );
+
+    const walk = Animated.timing(progress, {
+      toValue: 1,
+      duration,
+      delay: 700,
+      easing: Easing.inOut(Easing.quad), // arranca e desacelera suave
+      useNativeDriver: true,
+    });
+    walk.start(({ finished }) => {
+      if (!finished) return;
+      clearInterval(id);
+      bobLoop.stop();
+      setArrived(true); // troca direta pra pose de frente, para o passo
+    });
+
+    return () => {
+      clearInterval(id);
+      bobLoop.stop();
+      walk.stop();
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  return (
+    <Animated.Image
+      source={arrived ? MASCOT_FRONT : MASCOT_FRAMES[frame]}
+      resizeMode="contain"
+      fadeDuration={0}
+      style={{
+        position: 'absolute',
+        // ancorado no canto inferior-direito da medalha (leve sobra pra fora)
+        right: -w * 0.16,
+        bottom: -w * 0.06,
+        width: w,
+        height: w,
+        transform: [
+          {
+            // entra do extremo esquerdo da tela até o canto (translateX 0)
+            translateX: progress.interpolate({
+              inputRange: [0, 1],
+              outputRange: [-screenW, 0],
+            }),
+          },
+          {
+            translateY: arrived
+              ? 0
+              : bob.interpolate({ inputRange: [0, 1], outputRange: [0, -w * 0.05] }),
+          },
+          // espelha pra olhar pra direita enquanto anda; de frente fica normal
+          { scaleX: arrived ? 1 : -1 },
+        ],
+      }}
+    />
+  );
 }
 
 function Medal({ size = 88, label }: { size?: number; label: string }) {
@@ -353,7 +465,10 @@ export default function HomeScreen() {
               <Text style={s.challengeTitle}>{c?.title ?? '—'}</Text>
               <Text style={s.challengeSub}>Complete {c?.goalKm} km para ganhar sua medalha</Text>
             </View>
-            <Medal size={88} label={goalLabel} />
+            <View>
+              <Medal size={88} label={goalLabel} />
+              <MascotWalker medalSize={88} />
+            </View>
           </View>
 
           {/* Progress */}
@@ -380,6 +495,11 @@ export default function HomeScreen() {
               </Text>
             </View>
           </View>
+        </View>
+
+        {/* ── BANNER FIXO — explica o intuito do app ── */}
+        <View style={{ paddingTop: 20 }}>
+          <HomeBanner onPress={() => router.push('/sobre')} />
         </View>
 
         {/* ── NOVA CORRIDA ── */}
