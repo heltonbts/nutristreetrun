@@ -1,10 +1,11 @@
 import polylineCodec from '@mapbox/polyline';
 import * as ImagePicker from 'expo-image-picker';
-import { useFocusEffect } from 'expo-router';
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Animated,
   FlatList,
   Image,
   Keyboard,
@@ -13,6 +14,7 @@ import {
   Platform,
   Pressable,
   RefreshControl,
+  Share,
   StyleSheet,
   Text,
   TextInput,
@@ -21,7 +23,7 @@ import {
 import MapView, { Polyline, type Region } from 'react-native-maps';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { ClapIcon, CommentIcon, FireIcon } from '../../src/components/ReactionIcons';
+import { CommentIcon, LikeIcon, ShareIcon } from '../../src/components/ReactionIcons';
 import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { CameraIcon, CloseIcon, PlusIcon } from '../../src/components/UiIcons';
 import { api } from '../../src/lib/api';
@@ -29,7 +31,11 @@ import { colors, font } from '../../src/lib/tokens';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
-type Reaction = { type: string; count: number; myReaction: boolean };
+type TopComment = {
+  id: string;
+  body: string;
+  user: { id: string; name: string; avatarUrl: string | null };
+};
 
 type FeedUser = {
   id: string;
@@ -47,8 +53,10 @@ type ActivityData = {
   durationSec: number | null;
   routePolyline: string | null;
   startedAt: string;
-  reactions: Reaction[];
+  likesCount: number;
+  likedByMe: boolean;
   commentsCount: number;
+  topComments: TopComment[];
 };
 
 type PostData = {
@@ -57,8 +65,10 @@ type PostData = {
   body: string;
   imageUrl: string | null;
   createdAt: string;
-  reactions: Reaction[];
+  likesCount: number;
+  likedByMe: boolean;
   commentsCount: number;
+  topComments: TopComment[];
 };
 
 type FeedItem =
@@ -149,90 +159,134 @@ function Avatar({ user, size = 36 }: { user: FeedUser; size?: number }) {
   );
 }
 
-// ─── ReactionBar ──────────────────────────────────────────────────────────────
+// ─── useLike ────────────────────────────────────────────────────────────────
+// Estado da curtida (coração único). Update otimista + servidor como fonte da
+// verdade. `forceLike` é usado pelo double-tap (só curte, nunca descurte).
 
-function ReactionBar({
-  targetType,
-  targetId,
-  reactions: initialReactions,
+function useLike(
+  targetType: 'activity' | 'post',
+  targetId: string,
+  initialLiked: boolean,
+  initialCount: number,
+) {
+  const [liked, setLiked] = useState(initialLiked);
+  const [count, setCount] = useState(initialCount);
+  const pending = useRef(false);
+
+  const toggle = useCallback(
+    async (forceLike = false) => {
+      if (pending.current) return;
+      if (forceLike && liked) return; // double-tap em algo já curtido = no-op
+      pending.current = true;
+
+      const prevLiked = liked;
+      const prevCount = count;
+      const nextLiked = forceLike ? true : !liked;
+      setLiked(nextLiked);
+      setCount((c) => c + (nextLiked ? 1 : -1));
+
+      try {
+        const { data } = await api.post('/likes', { targetType, targetId });
+        setLiked(data.liked);
+        setCount(data.count);
+      } catch {
+        setLiked(prevLiked);
+        setCount(prevCount);
+      } finally {
+        pending.current = false;
+      }
+    },
+    [liked, count, targetType, targetId],
+  );
+
+  return { liked, count, toggle };
+}
+
+// ─── LikeBar ──────────────────────────────────────────────────────────────────
+
+function LikeBar({
+  liked,
+  onLike,
   commentsCount,
   onComments,
+  onShare,
 }: {
-  targetType: 'activity' | 'post';
-  targetId: string;
-  reactions: Reaction[];
+  liked: boolean;
+  onLike: () => void;
   commentsCount: number;
   onComments: () => void;
+  onShare: () => void;
 }) {
-  const [reactions, setReactions] = useState(initialReactions);
-  const [pending, setPending] = useState(false);
-
-  const toggle = async (type: string) => {
-    if (pending) return;
-    setPending(true);
-
-    // Optimistic update
-    setReactions((prev) =>
-      prev.map((r) => {
-        if (r.type === type) {
-          return {
-            ...r,
-            count: r.myReaction ? r.count - 1 : r.count + 1,
-            myReaction: !r.myReaction,
-          };
-        }
-        // Remove other active reaction
-        if (r.myReaction) return { ...r, count: r.count - 1, myReaction: false };
-        return r;
-      }),
-    );
-
-    try {
-      await api.post('/reactions', { targetType, targetId, type });
-    } catch {
-      setReactions(initialReactions);
-    } finally {
-      setPending(false);
-    }
-  };
-
-  const fire = reactions.find((r) => r.type === 'fire')!;
-  const clap = reactions.find((r) => r.type === 'clap')!;
-
   return (
-    <View style={s.reactionBar}>
+    <View style={s.likeBar}>
       <Pressable
-        style={({ pressed }) => [s.reactionBtn, pressed && { opacity: 0.6 }]}
-        onPress={() => toggle('fire')}
-        hitSlop={6}
+        style={({ pressed }) => [s.iconBtn, pressed && { opacity: 0.5 }]}
+        onPress={onLike}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel={liked ? 'Descurtir' : 'Curtir'}
       >
-        <FireIcon active={fire.myReaction} size={22} />
-        <Text style={[s.reactionCount, fire.myReaction && s.reactionActive]}>
-          {fire.count > 0 ? fire.count : ''}
-        </Text>
+        <LikeIcon active={liked} size={26} />
       </Pressable>
 
       <Pressable
-        style={({ pressed }) => [s.reactionBtn, pressed && { opacity: 0.6 }]}
-        onPress={() => toggle('clap')}
-        hitSlop={6}
-      >
-        <ClapIcon active={clap.myReaction} size={22} />
-        <Text style={[s.reactionCount, clap.myReaction && s.reactionActive]}>
-          {clap.count > 0 ? clap.count : ''}
-        </Text>
-      </Pressable>
-
-      <View style={s.reactionDivider} />
-
-      <Pressable
-        style={({ pressed }) => [s.reactionBtn, pressed && { opacity: 0.6 }]}
+        style={({ pressed }) => [s.iconBtn, pressed && { opacity: 0.5 }]}
         onPress={onComments}
-        hitSlop={6}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Comentar"
       >
-        <CommentIcon size={22} />
-        <Text style={s.reactionCount}>{commentsCount > 0 ? commentsCount : ''}</Text>
+        <CommentIcon size={24} />
       </Pressable>
+
+      <Pressable
+        style={({ pressed }) => [s.iconBtn, pressed && { opacity: 0.5 }]}
+        onPress={onShare}
+        hitSlop={8}
+        accessibilityRole="button"
+        accessibilityLabel="Compartilhar"
+      >
+        <ShareIcon size={24} />
+      </Pressable>
+    </View>
+  );
+}
+
+// ─── LikesCount + CommentsPreview ──────────────────────────────────────────────
+
+function LikesCount({ count }: { count: number }) {
+  if (count <= 0) return <Text style={s.likesCount}>Seja o primeiro a curtir</Text>;
+  return (
+    <Text style={s.likesCount}>
+      {count.toLocaleString('pt-BR')} curtida{count === 1 ? '' : 's'}
+    </Text>
+  );
+}
+
+function CommentsPreview({
+  commentsCount,
+  topComments,
+  onComments,
+}: {
+  commentsCount: number;
+  topComments: TopComment[];
+  onComments: () => void;
+}) {
+  if (commentsCount === 0) return null;
+  return (
+    <View style={s.commentsPreview}>
+      {commentsCount > topComments.length ? (
+        <Pressable onPress={onComments} hitSlop={4}>
+          <Text style={s.viewAllComments}>
+            Ver todos os {commentsCount.toLocaleString('pt-BR')} comentários
+          </Text>
+        </Pressable>
+      ) : null}
+      {topComments.map((c) => (
+        <Text key={c.id} style={s.previewComment} numberOfLines={2}>
+          <Text style={s.previewCommentName}>{c.user.name}</Text> {c.body}
+        </Text>
+      ))}
     </View>
   );
 }
@@ -240,9 +294,11 @@ function ReactionBar({
 // ─── UserHeader ───────────────────────────────────────────────────────────────
 
 function UserHeader({ user, time }: { user: FeedUser; time: string }) {
+  const router = useRouter();
+  const goToProfile = () => router.push(`/user/${user.id}`);
   return (
-    <View style={s.cardUserRow}>
-      <Avatar user={user} size={36} />
+    <Pressable style={s.cardUserRow} onPress={goToProfile} hitSlop={4}>
+      <Avatar user={user} size={38} />
       <View style={s.cardUserInfo}>
         <Text style={s.cardUserName}>{user.name}</Text>
         <Text style={s.cardUserMeta}>
@@ -250,7 +306,73 @@ function UserHeader({ user, time }: { user: FeedUser; time: string }) {
           {time}
         </Text>
       </View>
-    </View>
+    </Pressable>
+  );
+}
+
+// ─── Share helper ─────────────────────────────────────────────────────────────
+
+async function shareFeedItem(user: FeedUser, text: string) {
+  try {
+    await Share.share({
+      message: `${user.name} no NutriStreet Run:\n\n${text}`,
+    });
+  } catch {
+    // usuário cancelou o sheet — sem ação
+  }
+}
+
+// ─── LikeableMedia ────────────────────────────────────────────────────────────
+// Envolve a mídia pra dar double-tap → curtir (com coração animado), igual Insta.
+
+function LikeableMedia({
+  onDoubleLike,
+  children,
+}: {
+  onDoubleLike: () => void;
+  children: ReactNode;
+}) {
+  const lastTap = useRef(0);
+  const heartScale = useRef(new Animated.Value(0)).current;
+
+  const popHeart = () => {
+    heartScale.setValue(0);
+    Animated.sequence([
+      Animated.spring(heartScale, {
+        toValue: 1,
+        friction: 4,
+        useNativeDriver: true,
+      }),
+      Animated.timing(heartScale, {
+        toValue: 0,
+        delay: 450,
+        duration: 250,
+        useNativeDriver: true,
+      }),
+    ]).start();
+  };
+
+  const onPress = () => {
+    const now = Date.now();
+    if (now - lastTap.current < 280) {
+      onDoubleLike();
+      popHeart();
+      lastTap.current = 0;
+    } else {
+      lastTap.current = now;
+    }
+  };
+
+  return (
+    <Pressable onPress={onPress}>
+      {children}
+      <Animated.View
+        style={[s.heartOverlay, { opacity: heartScale, transform: [{ scale: heartScale }] }]}
+        pointerEvents="none"
+      >
+        <LikeIcon active size={96} />
+      </Animated.View>
+    </Pressable>
   );
 }
 
@@ -276,6 +398,12 @@ function ActivityCard({
     () => (item.routePolyline ? decodeRoute(item.routePolyline) : { coords: [], region: null }),
     [item.routePolyline],
   );
+  const { liked, count, toggle } = useLike(
+    'activity',
+    item.id,
+    item.likedByMe,
+    item.likesCount,
+  );
 
   return (
     <View style={s.card}>
@@ -300,28 +428,41 @@ function ActivityCard({
       </View>
 
       {route.region && route.coords.length > 1 ? (
-        <View style={s.actMapWrap} pointerEvents="none">
-          <MapView
-            style={s.actMap}
-            region={route.region}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            rotateEnabled={false}
-            pitchEnabled={false}
-            toolbarEnabled={false}
-            loadingEnabled
-            loadingBackgroundColor={colors.card}
-          >
-            <Polyline coordinates={route.coords} strokeColor={colors.brand} strokeWidth={4} />
-          </MapView>
-        </View>
+        <LikeableMedia onDoubleLike={() => toggle(true)}>
+          <View style={s.actMapWrap} pointerEvents="none">
+            <MapView
+              style={s.actMap}
+              region={route.region}
+              scrollEnabled={false}
+              zoomEnabled={false}
+              rotateEnabled={false}
+              pitchEnabled={false}
+              toolbarEnabled={false}
+              loadingEnabled
+              loadingBackgroundColor={colors.card}
+            >
+              <Polyline coordinates={route.coords} strokeColor={colors.brand} strokeWidth={4} />
+            </MapView>
+          </View>
+        </LikeableMedia>
       ) : null}
 
-      <ReactionBar
-        targetType="activity"
-        targetId={item.id}
-        reactions={item.reactions}
+      <LikeBar
+        liked={liked}
+        onLike={() => toggle()}
         commentsCount={item.commentsCount}
+        onComments={() => onComments('activity', item.id)}
+        onShare={() =>
+          shareFeedItem(
+            item.user,
+            `Correu ${item.distanceKm.toFixed(2)} km — ${item.title}`,
+          )
+        }
+      />
+      <LikesCount count={count} />
+      <CommentsPreview
+        commentsCount={item.commentsCount}
+        topComments={item.topComments}
         onComments={() => onComments('activity', item.id)}
       />
     </View>
@@ -337,23 +478,45 @@ function PostCard({
   item: PostData;
   onComments: (type: 'activity' | 'post', id: string) => void;
 }) {
-  return (
-    <View style={s.card}>
-      <UserHeader user={item.user} time={timeAgo(item.createdAt)} />
+  const { liked, count, toggle } = useLike(
+    'post',
+    item.id,
+    item.likedByMe,
+    item.likesCount,
+  );
 
-      <Text style={s.postBody}>{item.body}</Text>
+  return (
+    <View style={s.cardFlush}>
+      <View style={s.cardPad}>
+        <UserHeader user={item.user} time={timeAgo(item.createdAt)} />
+      </View>
 
       {item.imageUrl ? (
-        <Image source={{ uri: item.imageUrl }} style={s.postImage} resizeMode="cover" />
+        <LikeableMedia onDoubleLike={() => toggle(true)}>
+          <Image source={{ uri: item.imageUrl }} style={s.postImage} resizeMode="cover" />
+        </LikeableMedia>
       ) : null}
 
-      <ReactionBar
-        targetType="post"
-        targetId={item.id}
-        reactions={item.reactions}
-        commentsCount={item.commentsCount}
-        onComments={() => onComments('post', item.id)}
-      />
+      <View style={s.cardPad}>
+        <LikeBar
+          liked={liked}
+          onLike={() => toggle()}
+          commentsCount={item.commentsCount}
+          onComments={() => onComments('post', item.id)}
+          onShare={() => shareFeedItem(item.user, item.body)}
+        />
+        <LikesCount count={count} />
+        {item.body ? (
+          <Text style={s.caption}>
+            <Text style={s.captionName}>{item.user.name}</Text> {item.body}
+          </Text>
+        ) : null}
+        <CommentsPreview
+          commentsCount={item.commentsCount}
+          topComments={item.topComments}
+          onComments={() => onComments('post', item.id)}
+        />
+      </View>
     </View>
   );
 }
@@ -525,6 +688,8 @@ function NewPostSheet({
   const pickImage = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
+      allowsEditing: true,
+      aspect: [4, 5], // retrato estilo Instagram
       quality: 0.8,
     });
     if (!result.canceled) setImage(result.assets[0]);
@@ -980,48 +1145,67 @@ const s = StyleSheet.create({
     color: colors.textDim,
   },
 
-  // Post card
-  postBody: {
+  // Post card (full-bleed: mídia encosta nas laterais; texto tem padding próprio)
+  cardFlush: {
+    backgroundColor: colors.card,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderColor: colors.line,
+    overflow: 'hidden',
+    paddingVertical: 4,
+  },
+  cardPad: { paddingHorizontal: 16, gap: 8, paddingTop: 6 },
+  postImage: {
+    width: '100%',
+    aspectRatio: 4 / 5, // retrato estilo Instagram
+    backgroundColor: colors.bg,
+  },
+
+  // Coração animado do double-tap
+  heartOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+
+  // Like bar (coração / comentar / compartilhar)
+  likeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingTop: 4,
+  },
+  iconBtn: { paddingVertical: 2 },
+
+  likesCount: {
+    fontFamily: font.bodyBold,
+    fontSize: 13,
+    color: colors.text,
+  },
+
+  // Caption (nome + corpo do post)
+  caption: {
     fontFamily: font.body,
     fontSize: 14,
     color: colors.text,
-    lineHeight: 21,
+    lineHeight: 20,
   },
-  postImage: {
-    width: '100%',
-    height: 200,
-    borderRadius: 10,
-  },
+  captionName: { fontFamily: font.bodyBold },
 
-  // Reaction bar
-  reactionBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 2,
-    paddingTop: 2,
-  },
-  reactionBtn: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 8,
-    paddingVertical: 5,
-    borderRadius: 20,
-    backgroundColor: 'rgba(255,255,255,0.04)',
-  },
-  reactionCount: {
-    fontFamily: font.bodyMedium,
-    fontSize: 12,
+  // Prévia de comentários
+  commentsPreview: { gap: 3 },
+  viewAllComments: {
+    fontFamily: font.body,
+    fontSize: 13,
     color: colors.textMute,
-    minWidth: 12,
   },
-  reactionActive: { color: colors.brand },
-  reactionDivider: {
-    width: 1,
-    height: 16,
-    backgroundColor: colors.line,
-    marginHorizontal: 4,
+  previewComment: {
+    fontFamily: font.body,
+    fontSize: 13,
+    color: colors.textDim,
+    lineHeight: 19,
   },
+  previewCommentName: { fontFamily: font.bodyBold, color: colors.text },
 
   // Empty state
   empty: {
@@ -1175,8 +1359,8 @@ const np = StyleSheet.create({
     minHeight: 100,
     textAlignVertical: 'top',
   },
-  imagePreviewWrap: { position: 'relative' },
-  imagePreview: { width: '100%', height: 180, borderRadius: 12 },
+  imagePreviewWrap: { position: 'relative', alignSelf: 'center', width: '70%' },
+  imagePreview: { width: '100%', aspectRatio: 4 / 5, borderRadius: 12 },
   imageRemove: {
     position: 'absolute',
     top: 8,

@@ -71,6 +71,43 @@ export function ClapIcon({ active, size = 22, inactiveColor }: IconProps) {
 }
 
 /**
+ * Like — coração (curtida única, estilo Instagram). Ativo preenche vermelho
+ * (`colors.like`); inativo fica outline. Diferente do HeartIcon de UiIcons,
+ * que é monoline pro stat de frequência cardíaca.
+ */
+export function LikeIcon({ active, size = 24, inactiveColor }: IconProps) {
+  const c = active ? colors.like : (inactiveColor ?? colors.textMute);
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M12 21s-7.5-5-7.5-11A4.5 4.5 0 0 1 12 7a4.5 4.5 0 0 1 7.5 3c0 6-7.5 11-7.5 11Z"
+        fill={active ? c : 'none'}
+        stroke={c}
+        strokeWidth={STROKE}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/** Share — seta de compartilhamento (estilo "enviar"). */
+export function ShareIcon({ size = 24, inactiveColor }: IconProps) {
+  const c = inactiveColor ?? colors.textMute;
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M22 2 11 13M22 2l-7 20-4-9-9-4 20-7Z"
+        stroke={c}
+        strokeWidth={STROKE}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
+/**
  * Comment — balão de fala com duas linhas representando texto.
  * Substitui o 💬 emoji. Forma quadrada com cauda no canto inferior esquerdo.
  */

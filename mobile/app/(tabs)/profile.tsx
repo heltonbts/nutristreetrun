@@ -1,5 +1,6 @@
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -89,8 +90,14 @@ function SettingRow({
   );
 }
 
+interface SocialCounts {
+  user: { id: string };
+  counts: { posts: number; followers: number; following: number };
+}
+
 export default function ProfileScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   const logout = useAuthStore((s) => s.logout);
   const queryClient = useQueryClient();
   const [uploading, setUploading] = useState(false);
@@ -102,6 +109,14 @@ export default function ProfileScreen() {
   const { data, isLoading } = useQuery<ProfileData>({
     queryKey: ['profile'],
     queryFn: () => api.get('/profile').then((r) => r.data as ProfileData),
+  });
+
+  // Contadores sociais (posts/seguidores/seguindo) via perfil público próprio.
+  const { data: social } = useQuery<SocialCounts>({
+    queryKey: ['profile', 'social', data?.user.id],
+    queryFn: () =>
+      api.get(`/users/${data!.user.id}`).then((r) => r.data as SocialCounts),
+    enabled: !!data?.user.id,
   });
 
   const initials = data
@@ -214,6 +229,35 @@ export default function ProfileScreen() {
                 <Text style={s.headerAssessoria}>{data.user.assessoria}</Text>
               ) : null}
             </View>
+          </View>
+
+          {/* Contadores sociais estilo Instagram */}
+          <View style={s.socialRow}>
+            <Pressable
+              style={s.socialCell}
+              onPress={() => data && router.push(`/user/${data.user.id}`)}
+            >
+              <Text style={s.socialValue}>{social?.counts.posts ?? 0}</Text>
+              <Text style={s.socialLabel}>Posts</Text>
+            </Pressable>
+            <Pressable
+              style={s.socialCell}
+              onPress={() =>
+                data && router.push(`/user/${data.user.id}/connections?tab=followers`)
+              }
+            >
+              <Text style={s.socialValue}>{social?.counts.followers ?? 0}</Text>
+              <Text style={s.socialLabel}>Seguidores</Text>
+            </Pressable>
+            <Pressable
+              style={s.socialCell}
+              onPress={() =>
+                data && router.push(`/user/${data.user.id}/connections?tab=following`)
+              }
+            >
+              <Text style={s.socialValue}>{social?.counts.following ?? 0}</Text>
+              <Text style={s.socialLabel}>Seguindo</Text>
+            </Pressable>
           </View>
         </View>
 
@@ -379,6 +423,18 @@ const s = StyleSheet.create({
   },
   headerSub: { fontFamily: font.body, fontSize: 12, color: colors.textDim, marginTop: 4 },
   headerAssessoria: { fontFamily: font.bodyBold, fontSize: 12, color: colors.brand, marginTop: 2 },
+
+  /* Contadores sociais */
+  socialRow: {
+    flexDirection: 'row',
+    marginTop: 20,
+    borderTopWidth: 1,
+    borderTopColor: colors.line,
+    paddingTop: 16,
+  },
+  socialCell: { flex: 1, alignItems: 'center' },
+  socialValue: { fontFamily: font.bodyBold, fontSize: 18, color: colors.text },
+  socialLabel: { fontFamily: font.body, fontSize: 12, color: colors.textMute, marginTop: 2 },
 
   /* Body */
   body: { padding: 20, gap: 0 },
