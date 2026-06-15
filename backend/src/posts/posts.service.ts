@@ -27,7 +27,16 @@ export class PostsService {
             .upload_stream(
               {
                 folder: 'nsr/posts',
-                transformation: [{ width: 1080, crop: 'limit' }],
+                // Retrato 4:5 (estilo Instagram). gravity 'auto' centraliza no
+                // assunto principal da foto ao recortar.
+                transformation: [
+                  {
+                    width: 1080,
+                    height: 1350,
+                    crop: 'fill',
+                    gravity: 'auto',
+                  },
+                ],
               },
               (err, res) => {
                 if (err || !res)

@@ -3,6 +3,7 @@ import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
 
 import { CurrentUser } from '../auth/decorators/current-user.decorator';
 import { CreateCommentDto } from './dto/create-comment.dto';
+import { ToggleLikeDto } from './dto/toggle-like.dto';
 import { ToggleReactionDto } from './dto/toggle-reaction.dto';
 import { SocialService } from './social.service';
 
@@ -24,6 +25,15 @@ export class SocialController {
       dto.targetId,
       dto.type,
     );
+  }
+
+  @Post('likes')
+  @ApiOperation({ summary: 'Curtir / descurtir (toggle) post ou atividade' })
+  toggleLike(
+    @CurrentUser() user: { id: string },
+    @Body() dto: ToggleLikeDto,
+  ) {
+    return this.social.toggleLike(user.id, dto.targetType, dto.targetId);
   }
 
   @Get('comments/:targetType/:targetId')

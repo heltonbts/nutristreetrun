@@ -38,6 +38,31 @@ export class SocialService {
     return { action: 'created', reaction };
   }
 
+  /**
+   * Curtida única (coração). Reaproveita o model Reaction (unique por
+   * userId+target = 1 reação por usuário/alvo). Não diferencia tipo: qualquer
+   * reação existente conta como curtida, então likes antigos (fire/clap) são
+   * preservados sem migração de dados.
+   */
+  async toggleLike(userId: string, targetType: string, targetId: string) {
+    const existing = await this.prisma.reaction.findUnique({
+      where: { userId_targetType_targetId: { userId, targetType, targetId } },
+    });
+
+    if (existing) {
+      await this.prisma.reaction.delete({ where: { id: existing.id } });
+    } else {
+      await this.prisma.reaction.create({
+        data: { userId, targetType, targetId, type: 'like' },
+      });
+    }
+
+    const count = await this.prisma.reaction.count({
+      where: { targetType, targetId },
+    });
+    return { liked: !existing, count };
+  }
+
   async getComments(targetType: string, targetId: string) {
     return this.prisma.comment.findMany({
       where: { targetType, targetId },

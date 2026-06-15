@@ -35,6 +35,22 @@ model User {
   posts            Post[]
   reactions        Reaction[]
   comments         Comment[]
+  following        Follow[]        @relation("following") // Follows que ESTE user criou (quem ele segue)
+  followers        Follow[]        @relation("followers") // Follows que apontam pra ESTE user (quem o segue)
+}
+
+model Follow {
+  id          String   @id @default(cuid())
+  followerId  String // quem segue
+  followingId String // quem é seguido
+  createdAt   DateTime @default(now())
+
+  follower  User @relation("following", fields: [followerId], references: [id])
+  following User @relation("followers", fields: [followingId], references: [id])
+
+  @@unique([followerId, followingId])
+  @@index([followingId])
+  @@index([followerId])
 }
 
 model Challenge {
@@ -91,7 +107,7 @@ model Reaction {
   userId     String
   targetType String
   targetId   String
-  type       String   @default("fire")
+  type       String   @default("like") // curtida única (coração); reações antigas fire/clap também contam como curtida
   createdAt  DateTime @default(now())
 
   user User @relation(fields: [userId], references: [id])

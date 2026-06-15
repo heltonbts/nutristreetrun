@@ -14,6 +14,7 @@ import { PrismaModule } from './prisma/prisma.module';
 import { ProfileModule } from './profile/profile.module';
 import { RankingModule } from './ranking/ranking.module';
 import { SocialModule } from './social/social.module';
+import { UsersModule } from './users/users.module';
 
 @Module({
   imports: [
@@ -34,6 +35,7 @@ import { SocialModule } from './social/social.module';
     FeedModule,
     PostsModule,
     SocialModule,
+    UsersModule,
   ],
   providers: [
     { provide: APP_GUARD, useClass: ThrottlerGuard },
