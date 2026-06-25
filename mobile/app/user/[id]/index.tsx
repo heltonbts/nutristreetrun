@@ -224,9 +224,9 @@ export default function UserProfileScreen() {
         renderItem={({ item }) => (
           <Pressable
             style={{ width: cell, height: cell }}
-            disabled={item.type !== 'activity'}
             onPress={() => {
               if (item.type === 'activity') router.push(`/(tabs)/runs/${item.id}`);
+              else router.push(`/post/${item.id}`);
             }}
           >
             {item.type === 'post' && item.imageUrl ? (

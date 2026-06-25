@@ -59,7 +59,7 @@ type ActivityData = {
   topComments: TopComment[];
 };
 
-type PostData = {
+export type PostData = {
   id: string;
   user: FeedUser;
   body: string;
@@ -471,7 +471,7 @@ function ActivityCard({
 
 // ─── PostCard ─────────────────────────────────────────────────────────────────
 
-function PostCard({
+export function PostCard({
   item,
   onComments,
 }: {
@@ -487,7 +487,7 @@ function PostCard({
 
   return (
     <View style={s.cardFlush}>
-      <View style={s.cardPad}>
+      <View style={[s.cardPad, s.postHeaderPad]}>
         <UserHeader user={item.user} time={timeAgo(item.createdAt)} />
       </View>
 
@@ -523,7 +523,7 @@ function PostCard({
 
 // ─── CommentsSheet ────────────────────────────────────────────────────────────
 
-function CommentsSheet({
+export function CommentsSheet({
   visible,
   targetType,
   targetId,
@@ -1155,6 +1155,8 @@ const s = StyleSheet.create({
     paddingVertical: 4,
   },
   cardPad: { paddingHorizontal: 16, gap: 8, paddingTop: 6 },
+  // Respiro entre o cabeçalho (nome) e a foto — sem isso a imagem cola no nome.
+  postHeaderPad: { paddingTop: 10, paddingBottom: 12 },
   postImage: {
     width: '100%',
     aspectRatio: 4 / 5, // retrato estilo Instagram

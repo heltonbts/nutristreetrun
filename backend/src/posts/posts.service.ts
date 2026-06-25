@@ -60,6 +60,60 @@ export class PostsService {
     });
   }
 
+  /** Post único no mesmo formato dos itens de post do feed (tela de detalhe). */
+  async getPost(userId: string, postId: string) {
+    const post = await this.prisma.post.findUnique({
+      where: { id: postId },
+      include: {
+        user: {
+          select: { id: true, name: true, avatarUrl: true, assessoria: true },
+        },
+      },
+    });
+    if (!post) throw new NotFoundException('Post não encontrado');
+
+    const [likesCount, commentsCount, myLike, comments] = await Promise.all([
+      this.prisma.reaction.count({
+        where: { targetType: 'post', targetId: postId },
+      }),
+      this.prisma.comment.count({
+        where: { targetType: 'post', targetId: postId },
+      }),
+      this.prisma.reaction.findFirst({
+        where: { targetType: 'post', targetId: postId, userId },
+        select: { id: true },
+      }),
+      this.prisma.comment.findMany({
+        where: { targetType: 'post', targetId: postId },
+        include: { user: { select: { id: true, name: true, avatarUrl: true } } },
+        orderBy: { createdAt: 'desc' },
+        take: 2,
+      }),
+    ]);
+
+    return {
+      id: post.id,
+      user: {
+        id: post.user.id,
+        name: post.user.name,
+        avatarUrl: post.user.avatarUrl,
+        assessoria: post.user.assessoria,
+      },
+      body: post.body,
+      imageUrl: post.imageUrl,
+      createdAt: post.createdAt,
+      likesCount,
+      likedByMe: !!myLike,
+      commentsCount,
+      // Cronológico (mais antigo no topo), igual à prévia do feed.
+      topComments: comments.reverse().map((c) => ({
+        id: c.id,
+        body: c.body,
+        user: { id: c.user.id, name: c.user.name, avatarUrl: c.user.avatarUrl },
+      })),
+    };
+  }
+
   async deletePost(userId: string, postId: string) {
     const post = await this.prisma.post.findUnique({ where: { id: postId } });
     if (!post) throw new NotFoundException('Post não encontrado');
