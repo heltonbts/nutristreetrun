@@ -203,7 +203,7 @@ export default function RankingScreen() {
             showsVerticalScrollIndicator={false}
           >
             {data?.myPos != null && <Text style={s.myPos}>Você está em {data.myPos}º lugar</Text>}
-            {data?.items.map((item) =>
+            {(Array.isArray(data?.items) ? data.items : []).map((item) =>
               tab === 'club' ? (
                 <ClubRow key={item.pos} item={item as ClubItem} />
               ) : (

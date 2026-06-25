@@ -2,6 +2,7 @@ import {
   Body,
   Controller,
   Delete,
+  Get,
   Param,
   Post,
   UploadedFile,
@@ -35,6 +36,12 @@ export class PostsController {
     @UploadedFile() image?: Express.Multer.File,
   ) {
     return this.posts.createPost(user.id, dto.body, image?.buffer);
+  }
+
+  @Get(':id')
+  @ApiOperation({ summary: 'Detalhe de um post (formato do feed)' })
+  getPost(@CurrentUser() user: { id: string }, @Param('id') id: string) {
+    return this.posts.getPost(user.id, id);
   }
 
   @Delete(':id')

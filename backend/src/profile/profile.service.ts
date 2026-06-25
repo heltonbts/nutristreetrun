@@ -68,9 +68,14 @@ export class ProfileService {
       }),
       this.prisma.activity.findMany({
         where: { userId, counts: true },
-        select: { distanceKm: true },
+        select: { distanceKm: true, startedAt: true },
       }),
     ]);
+
+    const streak = this.computeStreak(
+      allActivities.map((a) => a.startedAt),
+      now,
+    );
 
     const medals = userChallenges.map((uc) => ({
       id: uc.id,
@@ -113,6 +118,68 @@ export class ProfileService {
       challenge: challengeData,
       medals,
       stats: { totalMedals, totalKm, monthsActive },
+      streak,
+    };
+  }
+
+  // ── Streak semanal (estilo Strava) ───────────────────────────────────────
+  // Sequência = nº de semanas consecutivas (seg–dom) com ≥1 atividade.
+  // A semana atual entra com "graça": se ainda não correu nela, conta a partir
+  // da semana passada (você tem até domingo pra manter a sequência).
+  private static readonly WEEK_MS = 7 * 24 * 60 * 60 * 1000;
+  // America/Sao_Paulo é UTC-3 fixo (sem horário de verão desde 2019).
+  private static readonly BR_OFFSET_MS = -3 * 60 * 60 * 1000;
+
+  /** Segunda-feira 00:00 (horário BR) da semana que contém `d`, como chave ms. */
+  private weekKey(d: Date): number {
+    const b = new Date(d.getTime() + ProfileService.BR_OFFSET_MS);
+    const daysFromMonday = (b.getUTCDay() + 6) % 7; // seg→0 … dom→6
+    return Date.UTC(
+      b.getUTCFullYear(),
+      b.getUTCMonth(),
+      b.getUTCDate() - daysFromMonday,
+    );
+  }
+
+  private computeStreak(dates: Date[], now: Date) {
+    const b = new Date(now.getTime() + ProfileService.BR_OFFSET_MS);
+    const curYear = b.getUTCFullYear();
+    const curMonth = b.getUTCMonth(); // 0-based
+
+    const weekSet = new Set(dates.map((d) => this.weekKey(d)));
+
+    // Conta semanas consecutivas a partir da atual (com graça pra semana atual).
+    let cursor = this.weekKey(now);
+    if (!weekSet.has(cursor)) cursor -= ProfileService.WEEK_MS;
+    const streakWeeks = new Set<number>();
+    while (weekSet.has(cursor)) {
+      streakWeeks.add(cursor);
+      cursor -= ProfileService.WEEK_MS;
+    }
+
+    const activities = dates.filter((d) =>
+      streakWeeks.has(this.weekKey(d)),
+    ).length;
+
+    // Dias do mês atual (BR) com ≥1 atividade — pro calendário do perfil.
+    const monthActiveDays = [
+      ...new Set(
+        dates
+          .map((d) => new Date(d.getTime() + ProfileService.BR_OFFSET_MS))
+          .filter(
+            (d) =>
+              d.getUTCFullYear() === curYear && d.getUTCMonth() === curMonth,
+          )
+          .map((d) => d.getUTCDate()),
+      ),
+    ].sort((x, y) => x - y);
+
+    return {
+      weeks: streakWeeks.size,
+      activities,
+      year: curYear,
+      month: curMonth + 1, // 1-based pro client
+      monthActiveDays,
     };
   }
 

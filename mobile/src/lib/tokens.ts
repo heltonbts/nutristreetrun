@@ -12,6 +12,7 @@ export const colors = {
   brandInk: '#0A0F0E',
   success: '#3DDC84',
   danger: '#FF6B6B',
+  like: '#FF3B5C', // curtida (coração) estilo Instagram
 };
 
 export const font = {
