@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useRouter } from 'expo-router';
 import { useState } from 'react';
 import {
   ActivityIndicator,
@@ -39,6 +40,7 @@ type Scope = 'city' | 'state' | 'club';
 
 interface RunnerItem {
   pos: number;
+  userId: string;
   name: string;
   initials: string;
   avatarUrl: string | null;
@@ -91,9 +93,18 @@ function Avatar({
 }
 
 function RunnerRow({ item }: { item: RunnerItem }) {
+  const router = useRouter();
   const me = item.isMe;
   return (
-    <View style={[s.row, me ? s.rowMe : s.rowDefault]}>
+    <Pressable
+      style={({ pressed }) => [
+        s.row,
+        me ? s.rowMe : s.rowDefault,
+        pressed && !me && s.rowPressed,
+      ]}
+      onPress={() => !me && router.push(`/user/${item.userId}`)}
+      disabled={me}
+    >
       <Text
         style={[
           s.pos,
@@ -113,7 +124,7 @@ function RunnerRow({ item }: { item: RunnerItem }) {
         {item.km.toFixed(1)}
         <Text style={[s.kmUnit, { color: me ? 'rgba(10,15,14,0.6)' : colors.textMute }]}> km</Text>
       </Text>
-    </View>
+    </Pressable>
   );
 }
 
@@ -291,6 +302,7 @@ const s = StyleSheet.create({
   rowClub: { paddingVertical: 14 },
   rowDefault: { backgroundColor: colors.card, borderWidth: 1, borderColor: colors.line },
   rowMe: { backgroundColor: colors.brand },
+  rowPressed: { opacity: 0.7 },
   avatar: { alignItems: 'center', justifyContent: 'center' },
   avatarText: {
     fontFamily: font.bodyBold,

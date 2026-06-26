@@ -74,6 +74,7 @@ export class RankingService {
 
     const items = rows.map((r, i) => ({
       pos: i + 1,
+      userId: r.userId,
       name: r.name,
       initials: initials(r.name),
       avatarUrl: r.avatarUrl,

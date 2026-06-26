@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { floatingTabBarSpace } from '../components/FloatingTabBar';
 import { api } from '../lib/api';
 import { colors, font } from '../lib/tokens';
 
@@ -156,8 +157,8 @@ export function ChallengePickerScreen({ onBack, onJoined }: Props) {
         </View>
       </ScrollView>
 
-      {/* CTA fixo na base */}
-      <View style={[s.footer, { paddingBottom: insets.bottom + 16 }]}>
+      {/* CTA fixo na base — reserva o espaço da ilha flutuante pra não ficar atrás dela */}
+      <View style={[s.footer, { paddingBottom: floatingTabBarSpace(insets.bottom) + 16 }]}>
         <Pressable
           style={[s.ctaBtn, (!selected || joining) && s.ctaBtnDisabled]}
           onPress={handleJoin}

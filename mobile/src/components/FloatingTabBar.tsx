@@ -12,6 +12,12 @@ const BAR_HEIGHT = 68;
 const PILL = 44;
 const SCREEN_W = Dimensions.get('window').width;
 
+// Espaço total ocupado pela ilha flutuante a partir da base da tela.
+// Telas com CTA fixo no rodapé devem reservar isso pra não ficar atrás da barra.
+export function floatingTabBarSpace(insetBottom: number) {
+  return Math.max(insetBottom, 8) + 8 + BAR_HEIGHT;
+}
+
 type TabName = 'home' | 'ranking' | 'feed' | 'runs' | 'profile';
 
 const ROUTE_MAP: Record<string, { icon: TabName; label: string }> = {
