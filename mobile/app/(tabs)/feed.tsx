@@ -1,4 +1,5 @@
 import polylineCodec from '@mapbox/polyline';
+import { useQuery } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
 import { useFocusEffect, useRouter } from 'expo-router';
 import { type ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -25,7 +26,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { CommentIcon, LikeIcon, ShareIcon } from '../../src/components/ReactionIcons';
 import { ScreenTransition } from '../../src/components/ScreenTransition';
-import { CameraIcon, CloseIcon, PlusIcon } from '../../src/components/UiIcons';
+import { BellIcon, CameraIcon, CloseIcon, PlusIcon } from '../../src/components/UiIcons';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
 
@@ -826,6 +827,14 @@ function NewPostSheet({
 
 export default function FeedScreen() {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
+
+  const { data: unreadCount = 0, refetch: refetchUnread } = useQuery({
+    queryKey: ['notifications-unread'],
+    queryFn: () =>
+      api.get('/notifications/unread-count').then((r) => r.data.count as number),
+    refetchInterval: 30000,
+  });
 
   const [items, setItems] = useState<FeedItem[]>([]);
   const [page, setPage] = useState(1);
@@ -881,7 +890,8 @@ export default function FeedScreen() {
   useFocusEffect(
     useCallback(() => {
       if (initialized.current) void loadPage(1, true);
-    }, [loadPage]),
+      void refetchUnread();
+    }, [loadPage, refetchUnread]),
   );
 
   const renderItem = useCallback(({ item }: { item: FeedItem }) => {
@@ -902,6 +912,20 @@ export default function FeedScreen() {
             <Text style={s.kicker}>COMUNIDADE</Text>
             <Text style={s.title}>FEED</Text>
           </View>
+          <Pressable
+            style={({ pressed }) => [s.headerAction, pressed && { opacity: 0.6 }]}
+            onPress={() => router.push('/notifications')}
+            hitSlop={10}
+            accessibilityRole="button"
+            accessibilityLabel="Notificações"
+          >
+            <BellIcon size={21} color={colors.text} />
+            {unreadCount > 0 && (
+              <View style={s.badge}>
+                <Text style={s.badgeText}>{unreadCount > 9 ? '9+' : unreadCount}</Text>
+              </View>
+            )}
+          </Pressable>
           <Pressable
             style={({ pressed }) => [s.headerAction, pressed && { opacity: 0.6 }]}
             onPress={() => setShowNewPost(true)}
@@ -974,6 +998,7 @@ const s = StyleSheet.create({
   header: {
     flexDirection: 'row',
     alignItems: 'flex-end',
+    gap: 10,
     paddingHorizontal: 20,
     paddingTop: 12,
     paddingBottom: 8,
@@ -988,6 +1013,26 @@ const s = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(95,184,168,0.32)',
     marginBottom: 4,
+  },
+  badge: {
+    position: 'absolute',
+    top: -3,
+    right: -3,
+    minWidth: 18,
+    height: 18,
+    borderRadius: 9,
+    paddingHorizontal: 4,
+    backgroundColor: '#E5484D',
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: colors.bg,
+  },
+  badgeText: {
+    fontFamily: font.bodyBold,
+    fontSize: 10,
+    color: '#fff',
+    lineHeight: 13,
   },
   kicker: {
     fontFamily: font.bodyBold,

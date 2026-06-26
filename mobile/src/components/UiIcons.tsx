@@ -23,6 +23,27 @@ export function PlusIcon({ size = 22, color = colors.text, strokeWidth = 2.4 }: 
   );
 }
 
+/** Sino — central de notificações. */
+export function BellIcon({ size = 22, color = colors.text, strokeWidth = 1.9 }: IconProps) {
+  return (
+    <Svg width={size} height={size} viewBox="0 0 24 24" fill="none">
+      <Path
+        d="M18 8a6 6 0 1 0-12 0c0 7-3 9-3 9h18s-3-2-3-9Z"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinejoin="round"
+        strokeLinecap="round"
+      />
+      <Path
+        d="M13.7 21a2 2 0 0 1-3.4 0"
+        stroke={color}
+        strokeWidth={strokeWidth}
+        strokeLinecap="round"
+      />
+    </Svg>
+  );
+}
+
 /** "✕" — usado em botões de fechar modal ou remover item. */
 export function CloseIcon({ size = 20, color = colors.text, strokeWidth = 2 }: IconProps) {
   return (

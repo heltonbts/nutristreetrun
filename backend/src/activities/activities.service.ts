@@ -101,7 +101,7 @@ export class ActivitiesService {
     const [user, challenge] = await Promise.all([
       this.prisma.user.findUnique({
         where: { id: userId },
-        select: { pushToken: true },
+        select: { pushToken: true, name: true, city: true, state: true },
       }),
       this.prisma.challenge.findFirst({
         where: {
@@ -121,7 +121,7 @@ export class ActivitiesService {
       );
     }
 
-    if (!challenge || !token || !activity.counts) return;
+    if (!challenge || !activity.counts) return;
 
     const agg = await this.prisma.activity.aggregate({
       where: {
@@ -134,6 +134,14 @@ export class ActivitiesService {
 
     const newTotal = agg._sum.distanceKm ?? 0;
     const prevTotal = newTotal - activity.distanceKm;
+
+    // Quem foi ultrapassado no ranking (cidade, ou estado se não houver cidade).
+    if (user) {
+      void this.notifyPassedRunners(userId, user, challenge, prevTotal, newTotal);
+    }
+
+    if (!token) return;
+
     const pct = challenge.goalKm > 0 ? (newTotal / challenge.goalKm) * 100 : 0;
     const prevPct =
       challenge.goalKm > 0 ? (prevTotal / challenge.goalKm) * 100 : 0;
@@ -150,6 +158,54 @@ export class ActivitiesService {
         '🔥 Metade do caminho!',
         `${newTotal.toFixed(1)}km de ${challenge.goalKm}km. Você está na metade da meta!`,
       );
+    }
+  }
+
+  /**
+   * Notifica corredores que o usuário ultrapassou no ranking ao registrar a
+   * corrida. Alvo: quem tinha total dentro da faixa (prevTotal, newTotal) —
+   * estava à frente antes e ficou atrás depois. Escopo: cidade (ou estado).
+   */
+  private async notifyPassedRunners(
+    moverId: string,
+    mover: { name: string; city: string | null; state: string | null },
+    challenge: { startsAt: Date; endsAt: Date },
+    prevTotal: number,
+    newTotal: number,
+  ) {
+    if (newTotal <= prevTotal) return;
+
+    const scope = mover.city ? 'city' : mover.state ? 'state' : null;
+    const value = mover.city ?? mover.state;
+    if (!scope || !value) return;
+
+    const col = scope === 'city' ? Prisma.raw('"city"') : Prisma.raw('"state"');
+
+    const passed = await this.prisma.$queryRaw<{ userId: string }[]>`
+      SELECT u.id AS "userId"
+      FROM "User" u
+      LEFT JOIN "Activity" a ON a."userId" = u.id
+        AND a."startedAt" >= ${challenge.startsAt}
+        AND a."startedAt" <= ${challenge.endsAt}
+      WHERE u.${col} = ${value} AND u.id <> ${moverId}
+      GROUP BY u.id
+      HAVING COALESCE(SUM(CASE WHEN a.counts THEN a."distanceKm" ELSE 0 END), 0)::float > ${prevTotal}
+         AND COALESCE(SUM(CASE WHEN a.counts THEN a."distanceKm" ELSE 0 END), 0)::float < ${newTotal}
+    `;
+
+    const firstName = mover.name?.split(' ')[0] ?? 'Alguém';
+    const scopeLabel = scope === 'city' ? 'cidade' : 'estado';
+
+    for (const row of passed) {
+      void this.notificationsService.create({
+        userId: row.userId,
+        type: 'RANK_PASSED',
+        actorId: moverId,
+        targetType: 'ranking',
+        targetId: scope,
+        title: '📉 Você foi ultrapassado',
+        body: `${firstName} passou na sua frente no ranking da ${scopeLabel}. Bora revidar!`,
+      });
     }
   }
 

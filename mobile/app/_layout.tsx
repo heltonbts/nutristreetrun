@@ -12,7 +12,11 @@ import { Slot, useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import { View } from 'react-native';
 
-import { registerForPushNotifications, setupNotificationHandlers } from '../src/lib/notifications';
+import {
+  addNotificationResponseListener,
+  registerForPushNotifications,
+  setupNotificationHandlers,
+} from '../src/lib/notifications';
 import { colors } from '../src/lib/tokens';
 import { useAuthStore } from '../src/store/auth.store';
 
@@ -36,6 +40,14 @@ function AuthGuard() {
     if (token && inAuth) router.replace('/(tabs)');
     if (token) void registerForPushNotifications();
   }, [token, isLoading, segments, router]);
+
+  // Toque numa notificação push abre a central (deep-link fino: leva à lista).
+  useEffect(() => {
+    if (!token) return;
+    return addNotificationResponseListener(() => {
+      router.push('/notifications');
+    });
+  }, [token, router]);
 
   return <Slot />;
 }

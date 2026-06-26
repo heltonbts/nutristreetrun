@@ -4,6 +4,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 
+import { NotificationsService } from '../notifications/notifications.service';
 import { PrismaService } from '../prisma/prisma.service';
 
 const GRID_PAGE_SIZE = 24;
@@ -19,7 +20,10 @@ type PublicUserSelect = {
 
 @Injectable()
 export class UsersService {
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private notifications: NotificationsService,
+  ) {}
 
   // ─── Follow ──────────────────────────────────────────────────────────────
 
@@ -27,17 +31,39 @@ export class UsersService {
     if (followerId === followingId)
       throw new BadRequestException('Você não pode seguir a si mesmo');
 
+    const follower = await this.prisma.user.findUniqueOrThrow({
+      where: { id: followerId },
+      select: { name: true },
+    });
     await this.prisma.user.findUniqueOrThrow({
       where: { id: followingId },
       select: { id: true },
     });
 
     // Idempotente: se já segue, não duplica (unique [followerId, followingId]).
+    const existing = await this.prisma.follow.findUnique({
+      where: { followerId_followingId: { followerId, followingId } },
+      select: { id: true },
+    });
     await this.prisma.follow.upsert({
       where: { followerId_followingId: { followerId, followingId } },
       create: { followerId, followingId },
       update: {},
     });
+
+    // Notifica só em follow novo (evita spam ao re-seguir).
+    if (!existing) {
+      const name = follower.name?.split(' ')[0] ?? 'Alguém';
+      void this.notifications.create({
+        userId: followingId,
+        type: 'FOLLOW',
+        actorId: followerId,
+        targetType: 'user',
+        targetId: followerId,
+        title: 'Novo seguidor',
+        body: `${name} começou a te seguir.`,
+      });
+    }
 
     return { isFollowing: true, ...(await this.followCounts(followingId)) };
   }

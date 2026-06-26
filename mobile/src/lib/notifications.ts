@@ -20,6 +20,20 @@ export function setupNotificationHandlers() {
   });
 }
 
+/**
+ * Reage ao toque numa notificação push: encaminha o payload (type/target) pro
+ * callback, que decide a rota. Retorna função de cleanup (ou no-op).
+ */
+export function addNotificationResponseListener(
+  onTap: (data: Record<string, unknown>) => void,
+): () => void {
+  if (!Notifications) return () => {};
+  const sub = Notifications.addNotificationResponseReceivedListener((response) => {
+    onTap(response.notification.request.content.data ?? {});
+  });
+  return () => sub.remove();
+}
+
 export async function registerForPushNotifications(): Promise<void> {
   if (Platform.OS === 'web' || !Notifications) return;
 

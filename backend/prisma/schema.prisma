@@ -37,6 +37,8 @@ model User {
   comments         Comment[]
   following        Follow[]        @relation("following") // Follows que ESTE user criou (quem ele segue)
   followers        Follow[]        @relation("followers") // Follows que apontam pra ESTE user (quem o segue)
+  notifications      Notification[] @relation("notifRecipient") // notificações recebidas
+  notificationsActed Notification[] @relation("notifActor")     // notificações que ESTE user causou
 }
 
 model Follow {
@@ -51,6 +53,32 @@ model Follow {
   @@unique([followerId, followingId])
   @@index([followingId])
   @@index([followerId])
+}
+
+enum NotificationType {
+  LIKE
+  COMMENT
+  FOLLOW
+  RANK_PASSED
+}
+
+model Notification {
+  id         String           @id @default(cuid())
+  userId     String // destinatário
+  type       NotificationType
+  actorId    String? // quem causou (curtiu/comentou/seguiu/ultrapassou)
+  targetType String? // 'post' | 'activity' | 'ranking' | null
+  targetId   String? // id do post/atividade (deep-link) ou scope do ranking
+  title      String
+  body       String
+  read       Boolean          @default(false)
+  createdAt  DateTime         @default(now())
+
+  user  User  @relation("notifRecipient", fields: [userId], references: [id], onDelete: Cascade)
+  actor User? @relation("notifActor", fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([userId, read])
+  @@index([userId, createdAt])
 }
 
 model Challenge {
