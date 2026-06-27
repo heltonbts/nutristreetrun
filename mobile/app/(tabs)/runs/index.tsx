@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Animated,
+  Platform,
   Pressable,
   ScrollView,
   StyleSheet,
@@ -348,6 +349,18 @@ export default function RunsScreen() {
         {/* Ação principal — iniciar corrida */}
         <StartRunCard subtitle={heroSub} onPress={() => router.push('/runs/tracker')} />
 
+        {/* Importar corridas do Apple Health (esteira / só no relógio) — iOS only */}
+        {Platform.OS === 'ios' && (
+          <Pressable
+            style={({ pressed }) => [s.importLink, pressed && { opacity: 0.6 }]}
+            onPress={() => router.push('/runs/import')}
+          >
+            <Text style={s.importLinkIcon}>♥</Text>
+            <Text style={s.importLinkText}>Importar do Apple Health</Text>
+            <Text style={s.importLinkChevron}>›</Text>
+          </Pressable>
+        )}
+
         {isLoading ? (
           <View style={s.loading}>
             <ActivityIndicator color={colors.brand} />
@@ -513,6 +526,22 @@ const sd = StyleSheet.create({
 
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
+  importLink: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    marginHorizontal: 20,
+    marginTop: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    backgroundColor: colors.card,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  importLinkIcon: { color: colors.brand, fontSize: 15 },
+  importLinkText: { flex: 1, color: colors.text, fontFamily: font.bodyMedium, fontSize: 14 },
+  importLinkChevron: { color: colors.textMute, fontSize: 20, fontFamily: font.body },
   header: { paddingHorizontal: 20, paddingBottom: 4 },
   kicker: {
     fontFamily: font.bodyBold,

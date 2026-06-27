@@ -5,6 +5,8 @@ import { useState } from 'react';
 import {
   ActivityIndicator,
   Alert,
+  Dimensions,
+  FlatList,
   Image,
   Modal,
   Pressable,
@@ -15,6 +17,7 @@ import {
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
+import { RouteThumbnail } from '../../src/components/RouteThumbnail';
 import { ScreenTransition } from '../../src/components/ScreenTransition';
 import { api } from '../../src/lib/api';
 import { colors, font } from '../../src/lib/tokens';
@@ -23,6 +26,25 @@ import { EditProfileScreen } from '../../src/screens/EditProfileScreen';
 import { MedalsScreen } from '../../src/screens/MedalsScreen';
 import { SubscribeScreen } from '../../src/screens/SubscribeScreen';
 import { useAuthStore } from '../../src/store/auth.store';
+
+const GRID_GAP = 2;
+const GRID_COLS = 3;
+
+interface GridItem {
+  type: 'post' | 'activity';
+  id: string;
+  imageUrl: string | null;
+  body: string | null;
+  routePolyline: string | null;
+  distanceKm: number | null;
+  title: string | null;
+  date: string;
+}
+
+const MONTHS_SHORT = [
+  'jan', 'fev', 'mar', 'abr', 'mai', 'jun',
+  'jul', 'ago', 'set', 'out', 'nov', 'dez',
+];
 
 interface ProfileData {
   user: {
@@ -33,6 +55,8 @@ interface ProfileData {
     city: string | null;
     state: string | null;
     assessoria: string | null;
+    bio: string | null;
+    featuredMedalIds: string[];
     avatarUrl: string | null;
     weightKg: number | null;
     heightCm: number | null;
@@ -222,6 +246,8 @@ export default function ProfileScreen() {
   const [showEditProfile, setShowEditProfile] = useState(false);
   const [showAddress, setShowAddress] = useState(false);
   const [showSubscribe, setShowSubscribe] = useState(false);
+  const [showStats, setShowStats] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
 
   const { data, isLoading } = useQuery<ProfileData>({
     queryKey: ['profile'],
@@ -235,6 +261,21 @@ export default function ProfileScreen() {
       api.get(`/users/${data!.user.id}`).then((r) => r.data as SocialCounts),
     enabled: !!data?.user.id,
   });
+
+  // Grid de publicações (posts + corridas) — mesma fonte do perfil público.
+  const { data: grid } = useQuery<{ items: GridItem[] }>({
+    queryKey: ['profile', 'grid', data?.user.id],
+    queryFn: () =>
+      api.get(`/users/${data!.user.id}/grid`).then((r) => r.data as { items: GridItem[] }),
+    enabled: !!data?.user.id,
+  });
+
+  const cell = (Dimensions.get('window').width - GRID_GAP * (GRID_COLS - 1)) / GRID_COLS;
+
+  // Medalhas destacadas, resolvidas e na ordem escolhida pelo usuário.
+  const featuredMedals = (data?.user.featuredMedalIds ?? [])
+    .map((id) => data?.medals.find((m) => m.id === id))
+    .filter((m): m is NonNullable<typeof m> => !!m);
 
   const initials = data
     ? data.user.name
@@ -290,65 +331,37 @@ export default function ProfileScreen() {
     );
   }
 
-  /* ── Sub-tela medalhas ── */
-  if (showMedals && data) {
-    return (
-      <MedalsScreen
-        medals={data.medals}
-        address={data.address}
-        challenge={data.challenge}
-        onClose={() => setShowMedals(false)}
-        onEditAddress={() => {
-          setShowMedals(false);
-          setShowAddress(true);
-        }}
-      />
-    );
-  }
+  /* ── Cabeçalho do perfil (feed-first) ── */
+  const header = (
+    <View>
+      {/* Top bar: engrenagem (config) à direita */}
+      <View style={[s.topBar, { paddingTop: insets.top + 12 }]}>
+        <Text style={s.topBarTitle}>PERFIL</Text>
+        <Pressable hitSlop={10} onPress={() => setShowSettings(true)}>
+          <Text style={s.gear}>⚙</Text>
+        </Pressable>
+      </View>
 
-  /* ── Tela principal ── */
-  return (
-    <ScreenTransition>
-      <ScrollView
-        style={s.root}
-        contentContainerStyle={{ paddingBottom: 96 + insets.bottom }}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header com gradiente */}
-        <View style={[s.headerWrap, { paddingTop: insets.top + 24 }]}>
-          <View style={s.headerRow}>
-            <Pressable style={s.avatarWrap} onPress={pickAvatar}>
-              {data?.user.avatarUrl ? (
-                <Image source={{ uri: data.user.avatarUrl }} style={s.avatarImg} />
-              ) : (
-                <View style={s.avatarPlaceholder}>
-                  <Text style={s.avatarInitials}>{initials}</Text>
-                </View>
-              )}
-              <View style={s.avatarBadge}>
-                {uploading ? (
-                  <ActivityIndicator size={10} color={colors.brandInk} />
-                ) : (
-                  <Text style={s.avatarBadgeText}>✎</Text>
-                )}
+      <View style={s.headerWrap}>
+        <View style={s.headerRow}>
+          <Pressable style={s.avatarWrap} onPress={pickAvatar}>
+            {data?.user.avatarUrl ? (
+              <Image source={{ uri: data.user.avatarUrl }} style={s.avatarImg} />
+            ) : (
+              <View style={s.avatarPlaceholder}>
+                <Text style={s.avatarInitials}>{initials}</Text>
               </View>
-            </Pressable>
-
-            <View style={{ flex: 1 }}>
-              <Text style={s.name}>{data?.user.name.toUpperCase()}</Text>
-              {data?.user.city ? (
-                <Text style={s.headerSub}>
-                  {data.user.city}
-                  {data.user.state ? `, ${data.user.state}` : ''}
-                </Text>
-              ) : null}
-              {data?.user.assessoria ? (
-                <Text style={s.headerAssessoria}>{data.user.assessoria}</Text>
-              ) : null}
+            )}
+            <View style={s.avatarBadge}>
+              {uploading ? (
+                <ActivityIndicator size={10} color={colors.brandInk} />
+              ) : (
+                <Text style={s.avatarBadgeText}>✎</Text>
+              )}
             </View>
-          </View>
+          </Pressable>
 
-          {/* Contadores sociais estilo Instagram */}
+          {/* Contadores sociais ao lado do avatar (estilo Instagram) */}
           <View style={s.socialRow}>
             <Pressable
               style={s.socialCell}
@@ -378,119 +391,297 @@ export default function ProfileScreen() {
           </View>
         </View>
 
-        <View style={s.body}>
-          {/* Stats grid */}
-          <Text style={s.sectionLabel}>ESTATÍSTICAS</Text>
-          <View style={s.statsGrid}>
-            <Pressable
-              style={[s.statCell, s.statCellBorderR, s.statCellBorderB]}
-              onPress={() => setShowMedals(true)}
-            >
-              <Text style={s.statValue}>{data?.stats?.totalMedals ?? 0}</Text>
-              <Text style={s.statLabel}>Medalhas</Text>
-              <Text style={s.statArrow}>↗</Text>
-            </Pressable>
-            <View style={[s.statCell, s.statCellBorderB]}>
-              <Text style={s.statValue}>{data?.stats?.totalKm ?? 0}</Text>
-              <Text style={s.statLabel}>km total</Text>
-            </View>
-            <View style={[s.statCell, s.statCellBorderR]}>
-              <Text style={s.statValue}>{data?.stats?.monthsActive ?? 0}</Text>
-              <Text style={s.statLabel}>Meses ativos</Text>
-            </View>
-            <View style={s.statCell}>
-              <Text style={s.statValue}>
-                {data?.challenge ? `${data.challenge.daysLeft}d` : '—'}
-              </Text>
-              <Text style={s.statLabel}>Dias restantes</Text>
-            </View>
-          </View>
+        <Text style={s.name}>{data?.user.name.toUpperCase()}</Text>
+        {data?.user.assessoria ? (
+          <Text style={s.headerAssessoria}>{data.user.assessoria}</Text>
+        ) : null}
+        {data?.user.city ? (
+          <Text style={s.headerSub}>
+            {data.user.city}
+            {data.user.state ? `, ${data.user.state}` : ''}
+          </Text>
+        ) : null}
 
-          {/* Sequência semanal */}
-          {data?.streak ? <StreakSection streak={data.streak} /> : null}
+        {/* Bio */}
+        {data?.user.bio ? <Text style={s.bio}>{data.user.bio}</Text> : null}
 
-          {/* Minhas medalhas shortcut */}
-          <Pressable style={[s.medalsBtn, { marginTop: 24 }]} onPress={() => setShowMedals(true)}>
-            <View style={s.medalsBtnIcon}>
-              <Text style={{ fontSize: 18 }}>🏅</Text>
-            </View>
-            <View style={{ flex: 1 }}>
-              <Text style={s.medalsBtnTitle}>Minhas medalhas</Text>
-              <Text style={s.medalsBtnSub}>
-                {data?.stats?.totalMedals ?? 0} conquistadas · ver vitrine
-              </Text>
-            </View>
-            <Text style={{ color: colors.brand, fontSize: 16 }}>›</Text>
+        {/* Conquistas em destaque */}
+        {featuredMedals.length > 0 ? (
+          <Pressable style={s.featuredRow} onPress={() => setShowMedals(true)}>
+            {featuredMedals.map((m) => (
+              <View key={m.id} style={s.featuredChip}>
+                <Text style={s.featuredEmoji}>🏅</Text>
+                <Text style={s.featuredLabel} numberOfLines={1}>
+                  {MONTHS_SHORT[m.month - 1]}/{String(m.year).slice(2)}
+                </Text>
+              </View>
+            ))}
           </Pressable>
+        ) : null}
 
-          {/* Plano ativo */}
-          <Text style={[s.sectionLabel, { marginTop: 24 }]}>PLANO ATIVO</Text>
-          <View style={s.planCard}>
-            <View style={s.planTop}>
-              <View>
-                <Text style={s.planName}>NUTRISTREET RUN</Text>
-                <Text style={s.planNext}>Renovação mensal automática</Text>
-              </View>
-              <View style={s.pillActive}>
-                <Text style={s.pillActiveText}>ATIVO</Text>
-              </View>
-            </View>
-            <View style={s.planBottom}>
-              <Text style={s.planPrice}>R$ 49,90/mês</Text>
-              <Pressable style={s.benefitsBtn} onPress={() => setShowSubscribe(true)}>
-                <Text style={s.benefitsBtnText}>VER BENEFÍCIOS</Text>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Settings */}
-          <View style={[s.settingsCard, { marginTop: 24 }]}>
-            <SettingRow
-              label="Editar perfil"
-              sub={data?.user.name}
-              onPress={() => setShowEditProfile(true)}
-            />
-            <SettingRow
-              label="Endereço de entrega"
-              sub={data?.address.zipCode ? `CEP ${data.address.zipCode}` : 'Configurar'}
-              onPress={() => setShowAddress(true)}
-            />
-            <SettingRow label="Notificações" sub="Diárias" />
-            <SettingRow label="Ajuda & suporte" />
-            <SettingRow label="Sair da conta" onPress={logout} last />
-          </View>
+        {/* Ações */}
+        <View style={s.actionsRow}>
+          <Pressable
+            style={[s.actionBtn, s.actionBtnFlex]}
+            onPress={() => setShowEditProfile(true)}
+          >
+            <Text style={s.actionBtnText}>Editar perfil</Text>
+          </Pressable>
+          <Pressable
+            style={[s.actionBtn, s.actionBtnFlex]}
+            onPress={() => setShowStats(true)}
+          >
+            <Text style={s.actionBtnText}>Estatísticas</Text>
+          </Pressable>
         </View>
+      </View>
 
-        {/* Modal editar perfil */}
-        <Modal visible={showEditProfile} animationType="slide" presentationStyle="pageSheet">
-          {data && (
-            <EditProfileScreen
-              initial={{
-                name: data.user.name,
-                phone: data.user.phone,
-                city: data.user.city ?? data.address.deliveryCity,
-                state: data.user.state ?? data.address.deliveryState,
-                assessoria: data.user.assessoria,
-                weightKg: data.user.weightKg,
-                heightCm: data.user.heightCm,
+      <View style={s.gridDivider} />
+    </View>
+  );
+
+  /* ── Tela principal ── */
+  return (
+    <ScreenTransition>
+      <FlatList
+        style={s.root}
+        data={grid?.items ?? []}
+        keyExtractor={(it) => `${it.type}-${it.id}`}
+        numColumns={GRID_COLS}
+        ListHeaderComponent={header}
+        columnWrapperStyle={{ gap: GRID_GAP }}
+        contentContainerStyle={{ gap: GRID_GAP, paddingBottom: insets.bottom + 96 }}
+        showsVerticalScrollIndicator={false}
+        ListEmptyComponent={
+          <View style={s.gridEmpty}>
+            <Text style={s.gridEmptyText}>Nenhuma publicação ainda</Text>
+            <Text style={s.gridEmptyHint}>Suas corridas e posts aparecem aqui.</Text>
+          </View>
+        }
+        renderItem={({ item }) => (
+          <Pressable
+            style={{ width: cell, height: cell }}
+            onPress={() => {
+              if (item.type === 'activity') router.push(`/(tabs)/runs/${item.id}`);
+              else router.push(`/post/${item.id}`);
+            }}
+          >
+            {item.type === 'post' && item.imageUrl ? (
+              <Image source={{ uri: item.imageUrl }} style={s.gridImg} />
+            ) : item.type === 'activity' ? (
+              <View style={s.gridActivity}>
+                <RouteThumbnail encoded={item.routePolyline} size={cell - 16} />
+                <Text style={s.gridKm}>
+                  {item.distanceKm != null ? `${item.distanceKm.toFixed(1)} km` : 'Corrida'}
+                </Text>
+              </View>
+            ) : (
+              <View style={s.gridText}>
+                <Text style={s.gridTextBody} numberOfLines={4}>
+                  {item.body}
+                </Text>
+              </View>
+            )}
+          </Pressable>
+        )}
+      />
+
+      {/* Modal estatísticas (stats + sequência + plano) */}
+      <Modal
+        visible={showStats}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowStats(false)}
+      >
+        <View style={s.sheetRoot}>
+          <View style={s.sheetBar}>
+            <Text style={s.sheetTitle}>ESTATÍSTICAS</Text>
+            <Pressable hitSlop={10} onPress={() => setShowStats(false)}>
+              <Text style={s.sheetClose}>Fechar</Text>
+            </Pressable>
+          </View>
+          <ScrollView
+            contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={s.statsGrid}>
+              <Pressable
+                style={[s.statCell, s.statCellBorderR, s.statCellBorderB]}
+                onPress={() => {
+                  setShowStats(false);
+                  setShowMedals(true);
+                }}
+              >
+                <Text style={s.statValue}>{data?.stats?.totalMedals ?? 0}</Text>
+                <Text style={s.statLabel}>Medalhas</Text>
+                <Text style={s.statArrow}>↗</Text>
+              </Pressable>
+              <View style={[s.statCell, s.statCellBorderB]}>
+                <Text style={s.statValue}>{data?.stats?.totalKm ?? 0}</Text>
+                <Text style={s.statLabel}>km total</Text>
+              </View>
+              <View style={[s.statCell, s.statCellBorderR]}>
+                <Text style={s.statValue}>{data?.stats?.monthsActive ?? 0}</Text>
+                <Text style={s.statLabel}>Meses ativos</Text>
+              </View>
+              <View style={s.statCell}>
+                <Text style={s.statValue}>
+                  {data?.challenge ? `${data.challenge.daysLeft}d` : '—'}
+                </Text>
+                <Text style={s.statLabel}>Dias restantes</Text>
+              </View>
+            </View>
+
+            {data?.streak ? <StreakSection streak={data.streak} /> : null}
+
+            <Pressable
+              style={[s.medalsBtn, { marginTop: 24 }]}
+              onPress={() => {
+                setShowStats(false);
+                setShowMedals(true);
               }}
-              onClose={() => setShowEditProfile(false)}
-            />
-          )}
-        </Modal>
+            >
+              <View style={s.medalsBtnIcon}>
+                <Text style={{ fontSize: 18 }}>🏅</Text>
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={s.medalsBtnTitle}>Minhas medalhas</Text>
+                <Text style={s.medalsBtnSub}>
+                  {data?.stats?.totalMedals ?? 0} conquistadas · ver vitrine
+                </Text>
+              </View>
+              <Text style={{ color: colors.brand, fontSize: 16 }}>›</Text>
+            </Pressable>
 
-        {/* Modal inscrição */}
-        <Modal visible={showSubscribe} animationType="slide" presentationStyle="fullScreen">
-          {data && (
-            <SubscribeScreen userId={data.user.id} onClose={() => setShowSubscribe(false)} />
-          )}
-        </Modal>
+            <Text style={[s.sectionLabel, { marginTop: 24 }]}>PLANO ATIVO</Text>
+            <View style={s.planCard}>
+              <View style={s.planTop}>
+                <View>
+                  <Text style={s.planName}>NUTRISTREET RUN</Text>
+                  <Text style={s.planNext}>Renovação mensal automática</Text>
+                </View>
+                <View style={s.pillActive}>
+                  <Text style={s.pillActiveText}>ATIVO</Text>
+                </View>
+              </View>
+              <View style={s.planBottom}>
+                <Text style={s.planPrice}>R$ 49,90/mês</Text>
+                <Pressable
+                  style={s.benefitsBtn}
+                  onPress={() => {
+                    setShowStats(false);
+                    setShowSubscribe(true);
+                  }}
+                >
+                  <Text style={s.benefitsBtnText}>VER BENEFÍCIOS</Text>
+                </Pressable>
+              </View>
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
 
-        {/* Modal endereço */}
-        <Modal visible={showAddress} animationType="slide" presentationStyle="pageSheet">
-          {data && <AddressScreen initial={data.address} onClose={() => setShowAddress(false)} />}
-        </Modal>
-      </ScrollView>
+      {/* Modal configurações */}
+      <Modal
+        visible={showSettings}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowSettings(false)}
+      >
+        <View style={s.sheetRoot}>
+          <View style={s.sheetBar}>
+            <Text style={s.sheetTitle}>CONFIGURAÇÕES</Text>
+            <Pressable hitSlop={10} onPress={() => setShowSettings(false)}>
+              <Text style={s.sheetClose}>Fechar</Text>
+            </Pressable>
+          </View>
+          <ScrollView
+            contentContainerStyle={{ padding: 20, paddingBottom: insets.bottom + 32 }}
+            showsVerticalScrollIndicator={false}
+          >
+            <View style={s.settingsCard}>
+              <SettingRow
+                label="Editar perfil"
+                sub={data?.user.name}
+                onPress={() => {
+                  setShowSettings(false);
+                  setShowEditProfile(true);
+                }}
+              />
+              <SettingRow
+                label="Endereço de entrega"
+                sub={data?.address.zipCode ? `CEP ${data.address.zipCode}` : 'Configurar'}
+                onPress={() => {
+                  setShowSettings(false);
+                  setShowAddress(true);
+                }}
+              />
+              <SettingRow label="Notificações" sub="Diárias" />
+              <SettingRow label="Ajuda & suporte" />
+              <SettingRow label="Sair da conta" onPress={logout} last />
+            </View>
+          </ScrollView>
+        </View>
+      </Modal>
+
+      {/* Modal medalhas */}
+      <Modal
+        visible={showMedals}
+        animationType="slide"
+        presentationStyle="fullScreen"
+        onRequestClose={() => setShowMedals(false)}
+      >
+        {data && (
+          <MedalsScreen
+            medals={data.medals}
+            address={data.address}
+            challenge={data.challenge}
+            onClose={() => setShowMedals(false)}
+            onEditAddress={() => {
+              setShowMedals(false);
+              setShowAddress(true);
+            }}
+          />
+        )}
+      </Modal>
+
+      {/* Modal editar perfil */}
+      <Modal
+        visible={showEditProfile}
+        animationType="slide"
+        presentationStyle="pageSheet"
+        onRequestClose={() => setShowEditProfile(false)}
+      >
+        {data && (
+          <EditProfileScreen
+            initial={{
+              name: data.user.name,
+              phone: data.user.phone,
+              city: data.user.city ?? data.address.deliveryCity,
+              state: data.user.state ?? data.address.deliveryState,
+              assessoria: data.user.assessoria,
+              bio: data.user.bio,
+              featuredMedalIds: data.user.featuredMedalIds,
+              weightKg: data.user.weightKg,
+              heightCm: data.user.heightCm,
+            }}
+            medals={data.medals}
+            onClose={() => setShowEditProfile(false)}
+          />
+        )}
+      </Modal>
+
+      {/* Modal inscrição */}
+      <Modal visible={showSubscribe} animationType="slide" presentationStyle="fullScreen">
+        {data && (
+          <SubscribeScreen userId={data.user.id} onClose={() => setShowSubscribe(false)} />
+        )}
+      </Modal>
+
+      {/* Modal endereço */}
+      <Modal visible={showAddress} animationType="slide" presentationStyle="pageSheet">
+        {data && <AddressScreen initial={data.address} onClose={() => setShowAddress(false)} />}
+      </Modal>
     </ScreenTransition>
   );
 }
@@ -500,12 +691,26 @@ const STAT_CELL_SIZE = '50%';
 const s = StyleSheet.create({
   root: { flex: 1, backgroundColor: colors.bg },
 
+  /* Top bar (título + engrenagem) */
+  topBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingBottom: 8,
+  },
+  topBarTitle: {
+    fontFamily: font.bodyBold,
+    fontSize: 13,
+    color: colors.textMute,
+    letterSpacing: 1.6,
+  },
+  gear: { fontSize: 20, color: colors.text },
+
   /* Header */
   headerWrap: {
     paddingHorizontal: 20,
-    paddingBottom: 28,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.line,
+    paddingBottom: 16,
     backgroundColor: colors.bg,
   },
   headerRow: { flexDirection: 'row', alignItems: 'center', gap: 16 },
@@ -540,21 +745,109 @@ const s = StyleSheet.create({
     color: colors.text,
     lineHeight: 30,
     letterSpacing: 0.5,
+    marginTop: 16,
   },
   headerSub: { fontFamily: font.body, fontSize: 12, color: colors.textDim, marginTop: 4 },
-  headerAssessoria: { fontFamily: font.bodyBold, fontSize: 12, color: colors.brand, marginTop: 2 },
-
-  /* Contadores sociais */
-  socialRow: {
-    flexDirection: 'row',
-    marginTop: 20,
-    borderTopWidth: 1,
-    borderTopColor: colors.line,
-    paddingTop: 16,
+  headerAssessoria: { fontFamily: font.bodyBold, fontSize: 12, color: colors.brand, marginTop: 4 },
+  bio: {
+    fontFamily: font.body,
+    fontSize: 13,
+    color: colors.textDim,
+    lineHeight: 19,
+    marginTop: 10,
   },
-  socialCell: { flex: 1, alignItems: 'center' },
+
+  /* Contadores sociais (ao lado do avatar) */
+  socialRow: {
+    flex: 1,
+    flexDirection: 'row',
+    justifyContent: 'space-around',
+  },
+  socialCell: { alignItems: 'center' },
   socialValue: { fontFamily: font.bodyBold, fontSize: 18, color: colors.text },
   socialLabel: { fontFamily: font.body, fontSize: 12, color: colors.textMute, marginTop: 2 },
+
+  /* Conquistas em destaque */
+  featuredRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginTop: 14 },
+  featuredChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    backgroundColor: 'rgba(95,184,168,0.10)',
+    borderWidth: 1,
+    borderColor: 'rgba(95,184,168,0.28)',
+    borderRadius: 999,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+  },
+  featuredEmoji: { fontSize: 13 },
+  featuredLabel: {
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.brand,
+    letterSpacing: 0.3,
+  },
+
+  /* Ações (Editar perfil / Estatísticas) */
+  actionsRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  actionBtn: {
+    borderWidth: 1,
+    borderColor: colors.lineHi,
+    borderRadius: 10,
+    paddingVertical: 10,
+    alignItems: 'center',
+  },
+  actionBtnFlex: { flex: 1 },
+  actionBtnText: { fontFamily: font.bodyBold, fontSize: 13, color: colors.text },
+
+  /* Grid */
+  gridDivider: { height: 1, backgroundColor: colors.line, marginBottom: GRID_GAP },
+  gridImg: { width: '100%', height: '100%', backgroundColor: colors.card },
+  gridActivity: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.card,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  gridKm: {
+    position: 'absolute',
+    bottom: 6,
+    right: 8,
+    fontFamily: font.bodyBold,
+    fontSize: 11,
+    color: colors.text,
+  },
+  gridText: {
+    width: '100%',
+    height: '100%',
+    backgroundColor: colors.card,
+    padding: 8,
+    justifyContent: 'center',
+  },
+  gridTextBody: { fontFamily: font.body, fontSize: 11, color: colors.textDim, lineHeight: 15 },
+  gridEmpty: { paddingTop: 48, alignItems: 'center', gap: 4 },
+  gridEmptyText: { fontFamily: font.bodyBold, fontSize: 14, color: colors.textDim },
+  gridEmptyHint: { fontFamily: font.body, fontSize: 12, color: colors.textMute },
+
+  /* Sheets (estatísticas / configurações) */
+  sheetRoot: { flex: 1, backgroundColor: colors.bg },
+  sheetBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: colors.line,
+  },
+  sheetTitle: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 18,
+    color: colors.text,
+    letterSpacing: 0.5,
+  },
+  sheetClose: { fontFamily: font.bodyBold, fontSize: 15, color: colors.brand },
 
   /* Body */
   body: { padding: 20, gap: 0 },

@@ -14,6 +14,7 @@ import {
   ScrollView,
   StyleSheet,
   Text,
+  Vibration,
   View,
 } from 'react-native';
 import MapView, { Polyline, type Region } from 'react-native-maps';
@@ -27,8 +28,10 @@ import {
   getHeartRateStats,
   getLatestHeartRate,
   getStepCount,
+  requestHealthKitPermissions,
 } from '../../../src/lib/healthKit';
 import { endRunActivity, startRunActivity, updateRunActivity } from '../../../src/lib/liveActivity';
+import { presentLocalNotification } from '../../../src/lib/notifications';
 import { colors, font } from '../../../src/lib/tokens';
 import { COORDS_KEY, LOCATION_TASK, type TrackedCoord } from '../../../src/tasks/locationTask';
 
@@ -222,6 +225,12 @@ export default function TrackerScreen() {
   const [mapType, setMapType] = useState<MapType>('standard');
   const [splits, setSplits] = useState<Split[]>([]);
   const [countdown, setCountdown] = useState<number | null>(null);
+
+  // Flash do split: card animado que aparece ao fechar cada km e some sozinho.
+  type SplitFlash = { km: number; paceSec: number; elevDelta?: number; faster: boolean | null };
+  const [splitFlash, setSplitFlash] = useState<SplitFlash | null>(null);
+  const flashAnim = useRef(new Animated.Value(0)).current;
+  const flashTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   // Handle height = time + stats + controls + safe area (controls live inside handle)
   const safeBottom = Math.max(insets.bottom, 8);
@@ -425,10 +434,20 @@ export default function TrackerScreen() {
         ? Math.round(lastCoord.alt - splitStartAltRef.current)
         : undefined;
     if (segDist > 0) {
-      setSplits((prev) => [
-        ...prev,
-        { km: prev.length + 1, paceSec: segTime / segDist, elevDelta },
-      ]);
+      const paceSec = segTime / segDist;
+      const prevSplit = splits[splits.length - 1];
+      const kmNum = splits.length + 1;
+      setSplits((prev) => [...prev, { km: prev.length + 1, paceSec, elevDelta }]);
+      // Fecha 1 km: vibra + mostra o resumo animado + notificação local.
+      const faster = prevSplit ? paceSec < prevSplit.paceSec : null;
+      Vibration.vibrate(40);
+      showSplitFlash({ km: kmNum, paceSec, elevDelta, faster });
+      const tag = faster == null ? '' : faster ? ' · ▲ mais rápido' : ' · ▼ mais lento';
+      void presentLocalNotification(
+        `KM ${kmNum} concluído 🏃`,
+        `Pace ${fmtPace(paceSec)}/km${tag}`,
+        { type: 'split', km: kmNum },
+      );
     }
     splitKmRef.current += 1;
     splitStartDistRef.current = distKm;
@@ -436,6 +455,35 @@ export default function TrackerScreen() {
     if (lastCoord.alt != null) splitStartAltRef.current = lastCoord.alt;
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [Math.floor(totalKm(coords)), status]);
+
+  // Mostra o card de resumo do km: entra com mola, segura ~2.6s e sai suave.
+  function showSplitFlash(flash: SplitFlash) {
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    setSplitFlash(flash);
+    flashAnim.setValue(0);
+    Animated.spring(flashAnim, {
+      toValue: 1,
+      friction: 7,
+      tension: 80,
+      useNativeDriver: true,
+    }).start();
+    flashTimerRef.current = setTimeout(() => {
+      Animated.timing(flashAnim, {
+        toValue: 0,
+        duration: 320,
+        useNativeDriver: true,
+      }).start(({ finished }) => {
+        if (finished) setSplitFlash(null);
+      });
+    }, 2600);
+  }
+
+  // Limpa o timer do flash ao desmontar.
+  useEffect(() => {
+    return () => {
+      if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    };
+  }, []);
 
   // ── Handlers ──────────────────────────────────────────────────
   function onHoldStart() {
@@ -488,7 +536,14 @@ export default function TrackerScreen() {
   }
 
   async function startRun() {
+    // Pede acesso ao Apple Health no contexto da corrida (FC, calorias, passos
+    // e gravar o treino de volta). Sem isso, as leituras voltam vazias. iOS-only;
+    // no-op em Android. Não bloqueia o início — segue mesmo se o usuário negar.
+    void requestHealthKitPermissions();
+
     setSplits([]);
+    if (flashTimerRef.current) clearTimeout(flashTimerRef.current);
+    setSplitFlash(null);
     splitKmRef.current = 1;
     splitStartTimeRef.current = 0;
     splitStartDistRef.current = 0;
@@ -895,6 +950,58 @@ export default function TrackerScreen() {
         )}
       </MapView>
 
+      {/* Flash do split — resumo do km, animado, some sozinho */}
+      {splitFlash && (
+        <Animated.View
+          pointerEvents="none"
+          style={[
+            s.splitFlash,
+            {
+              top: insets.top + 64,
+              opacity: flashAnim,
+              transform: [
+                {
+                  translateY: flashAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [-20, 0],
+                  }),
+                },
+                {
+                  scale: flashAnim.interpolate({
+                    inputRange: [0, 1],
+                    outputRange: [0.9, 1],
+                  }),
+                },
+              ],
+            },
+          ]}
+        >
+          <Text style={s.splitFlashKm}>KM {splitFlash.km}</Text>
+          <View style={s.splitFlashPaceRow}>
+            <Text style={s.splitFlashPace}>{fmtPace(splitFlash.paceSec)}</Text>
+            <Text style={s.splitFlashUnit}>/km</Text>
+          </View>
+          <View style={s.splitFlashMetaRow}>
+            {splitFlash.faster != null && (
+              <Text
+                style={[
+                  s.splitFlashTag,
+                  { color: splitFlash.faster ? colors.brand : colors.danger },
+                ]}
+              >
+                {splitFlash.faster ? '▲ mais rápido' : '▼ mais lento'}
+              </Text>
+            )}
+            {splitFlash.elevDelta != null && splitFlash.elevDelta !== 0 && (
+              <Text style={s.splitFlashElev}>
+                {splitFlash.elevDelta > 0 ? '+' : ''}
+                {splitFlash.elevDelta} m
+              </Text>
+            )}
+          </View>
+        </Animated.View>
+      )}
+
       {/* Floating map controls */}
       <View style={[s.mapFloating, { top: insets.top + 8 }]}>
         <Pressable
@@ -1115,6 +1222,43 @@ const s = StyleSheet.create({
     borderWidth: 0.5,
     borderColor: 'rgba(255,107,107,0.35)',
   },
+
+  // ── Flash do split (resumo do km) ──
+  splitFlash: {
+    position: 'absolute',
+    alignSelf: 'center',
+    zIndex: 40,
+    minWidth: 150,
+    alignItems: 'center',
+    backgroundColor: 'rgba(14,17,16,0.92)',
+    borderRadius: 18,
+    borderWidth: 1,
+    borderColor: 'rgba(95,184,168,0.4)',
+    paddingVertical: 14,
+    paddingHorizontal: 24,
+    shadowColor: '#000',
+    shadowOpacity: 0.4,
+    shadowRadius: 16,
+    shadowOffset: { width: 0, height: 6 },
+  },
+  splitFlashKm: {
+    fontFamily: font.bodyBold,
+    fontSize: 12,
+    color: colors.brand,
+    letterSpacing: 2,
+  },
+  splitFlashPaceRow: { flexDirection: 'row', alignItems: 'baseline', marginTop: 4 },
+  splitFlashPace: {
+    fontFamily: 'BebasNeue_400Regular',
+    fontSize: 44,
+    color: colors.text,
+    lineHeight: 46,
+    letterSpacing: 0.5,
+  },
+  splitFlashUnit: { fontFamily: font.body, fontSize: 14, color: colors.textMute, marginLeft: 4 },
+  splitFlashMetaRow: { flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 2 },
+  splitFlashTag: { fontFamily: font.bodyBold, fontSize: 12, letterSpacing: 0.3 },
+  splitFlashElev: { fontFamily: font.body, fontSize: 12, color: colors.textDim },
 
   // ── Countdown overlay ──
   countdownOverlay: {

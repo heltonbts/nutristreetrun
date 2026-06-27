@@ -102,6 +102,8 @@ export class ProfileService {
         city: user.city,
         state: user.state,
         assessoria: user.assessoria,
+        bio: user.bio,
+        featuredMedalIds: user.featuredMedalIds,
         avatarUrl: user.avatarUrl,
         weightKg: user.weightKg,
         heightCm: user.heightCm,
@@ -191,10 +193,24 @@ export class ProfileService {
       city?: string;
       state?: string;
       assessoria?: string;
+      bio?: string;
+      featuredMedalIds?: string[];
       weightKg?: number;
       heightCm?: number;
     },
   ) {
+    // Se o cliente mandou destaques, garante que são medalhas que o usuário
+    // realmente possui (ignora ids inválidos / de outras pessoas).
+    let featuredMedalIds: string[] | undefined;
+    if (dto.featuredMedalIds !== undefined) {
+      const owned = await this.prisma.userChallenge.findMany({
+        where: { userId, id: { in: dto.featuredMedalIds } },
+        select: { id: true },
+      });
+      const ownedSet = new Set(owned.map((uc) => uc.id));
+      featuredMedalIds = dto.featuredMedalIds.filter((id) => ownedSet.has(id));
+    }
+
     const user = await this.prisma.user.update({
       where: { id: userId },
       data: {
@@ -203,6 +219,8 @@ export class ProfileService {
         ...(dto.city !== undefined && { city: dto.city }),
         ...(dto.state !== undefined && { state: dto.state }),
         ...(dto.assessoria !== undefined && { assessoria: dto.assessoria }),
+        ...(dto.bio !== undefined && { bio: dto.bio || null }),
+        ...(featuredMedalIds !== undefined && { featuredMedalIds }),
         ...(dto.weightKg !== undefined && { weightKg: dto.weightKg }),
         ...(dto.heightCm !== undefined && { heightCm: dto.heightCm }),
       },
@@ -213,6 +231,8 @@ export class ProfileService {
       city: user.city,
       state: user.state,
       assessoria: user.assessoria,
+      bio: user.bio,
+      featuredMedalIds: user.featuredMedalIds,
       weightKg: user.weightKg,
       heightCm: user.heightCm,
     };

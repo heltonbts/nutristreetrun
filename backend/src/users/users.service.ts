@@ -256,6 +256,7 @@ export class UsersService {
       city: true,
       state: true,
       assessoria: true,
+      bio: true,
     };
   }
 }

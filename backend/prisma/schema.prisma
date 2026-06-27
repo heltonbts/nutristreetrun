@@ -16,6 +16,8 @@ model User {
   city       String?
   state      String?
   assessoria String?
+  bio          String?  // bio curta do perfil (máx 150 chars, validado no DTO)
+  featuredMedalIds String[] @default([]) // ids de UserChallenge (medalhas) fixadas no perfil
   avatarUrl    String?
   weightKg     Float?
   heightCm     Int?
@@ -161,6 +163,7 @@ model Activity {
   id         String   @id @default(cuid())
   userId     String
   stravaId   Int?     @unique // legado: integração Strava removida
+  externalId String?  @unique // uuid do HKWorkout (Apple Health) p/ dedup de import
   title      String
   distanceKm Float
   pace       String?

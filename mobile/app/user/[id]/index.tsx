@@ -27,6 +27,7 @@ interface PublicProfile {
     city: string | null;
     state: string | null;
     assessoria: string | null;
+    bio: string | null;
   };
   counts: { posts: number; followers: number; following: number };
   isFollowing: boolean;
@@ -160,6 +161,7 @@ export default function UserProfileScreen() {
             {data.user.state ? `, ${data.user.state}` : ''}
           </Text>
         ) : null}
+        {data.user.bio ? <Text style={s.bio}>{data.user.bio}</Text> : null}
 
         <View style={s.statsRow}>
           <Text style={s.statsText}>
@@ -289,6 +291,7 @@ const s = StyleSheet.create({
   },
   assessoria: { fontFamily: font.bodyBold, fontSize: 13, color: colors.brand },
   city: { fontFamily: font.body, fontSize: 12, color: colors.textDim, marginTop: 2 },
+  bio: { fontFamily: font.body, fontSize: 13, color: colors.textDim, lineHeight: 19, marginTop: 8 },
 
   statsRow: { flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10 },
   statsText: { fontFamily: font.body, fontSize: 13, color: colors.textDim },

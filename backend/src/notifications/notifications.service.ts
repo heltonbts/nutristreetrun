@@ -52,7 +52,30 @@ export class NotificationsService {
       });
 
       if (!res.ok) {
-        this.logger.warn(`Expo Push API returned ${res.status}`);
+        this.logger.warn(`Expo Push API HTTP ${res.status}`);
+        return;
+      }
+
+      // A Expo responde 200 mesmo com erro: o status real vem no corpo do
+      // ticket. Sem checar isso, falhas (ex.: APNs sem credencial) ficam mudas.
+      const json = (await res.json()) as {
+        data?: { status?: string; message?: string; details?: { error?: string } };
+        errors?: { message?: string }[];
+      };
+      const ticket = json?.data;
+
+      if (json?.errors?.length) {
+        this.logger.warn(`Expo Push erro: ${json.errors[0]?.message}`);
+      } else if (ticket?.status === 'error') {
+        this.logger.warn(
+          `Expo Push ticket erro [${ticket.details?.error}]: ${ticket.message}`,
+        );
+        // Token morto: remove pra não insistir em quem desinstalou/revogou.
+        if (ticket.details?.error === 'DeviceNotRegistered') {
+          await this.prisma.user
+            .updateMany({ where: { pushToken: token }, data: { pushToken: null } })
+            .catch(() => undefined);
+        }
       }
     } catch (err) {
       this.logger.warn('Push send error', err);

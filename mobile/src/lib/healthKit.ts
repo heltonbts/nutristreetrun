@@ -13,6 +13,11 @@ if (Platform.OS === 'ios') {
   }
 }
 
+// Nome da fonte (source) que o nosso próprio app usa ao gravar workouts no
+// Apple Health (= display name do app). Filtramos esses na importação pra não
+// reimportar corridas que já registramos aqui. Mantenha igual ao "name" do app.json.
+const APP_SOURCE_NAME = 'NutriStreet Run';
+
 export async function requestHealthKitPermissions(): Promise<boolean> {
   if (!HK) return false;
   try {
@@ -21,6 +26,7 @@ export async function requestHealthKitPermissions(): Promise<boolean> {
         'HKQuantityTypeIdentifierHeartRate',
         'HKQuantityTypeIdentifierActiveEnergyBurned',
         'HKQuantityTypeIdentifierStepCount',
+        'HKWorkoutTypeIdentifier',
       ],
       toShare: ['HKWorkoutTypeIdentifier'],
     });
@@ -139,6 +145,62 @@ export function estimateCaloriesBurned(
   const kg = weightKg && weightKg > 30 && weightKg < 250 ? weightKg : 70; // sanity
   const hours = durationSec / 3600;
   return Math.round(met * kg * hours);
+}
+
+// ─── Importação de corridas do Apple Health ───────────────────────────────────
+// Cobre dois casos: corrida de esteira (workout indoor, sem GPS) e corrida feita
+// só no relógio sem o celular. Ambas viram um HKWorkout no Health; aqui listamos
+// as de corrida pra o usuário escolher e importar.
+
+export interface ImportableWorkout {
+  uuid: string;
+  startedAt: Date;
+  endedAt: Date;
+  durationSec: number;
+  distanceKm: number;
+  calories: number;
+  isIndoor: boolean; // esteira / pista coberta
+  sourceName: string; // "Apple Watch", "Garmin Connect", etc.
+}
+
+export async function queryRunningWorkouts(sinceDays = 60): Promise<ImportableWorkout[]> {
+  if (!HK) return [];
+  try {
+    const now = new Date();
+    const from = new Date(now.getTime() - sinceDays * 86400000);
+    const samples = await HK.queryWorkoutSamples({
+      filter: {
+        workoutActivityType: HK.WorkoutActivityType.running,
+        date: { startDate: from, endDate: now },
+      },
+      limit: 50,
+      ascending: false,
+    });
+    return samples
+      .map((w): ImportableWorkout => {
+        const distanceKm = w.totalDistance ? w.totalDistance.quantity / 1000 : 0;
+        const durationSec = Math.round(
+          w.duration?.quantity ?? (w.endDate.getTime() - w.startDate.getTime()) / 1000,
+        );
+        const calories = w.totalEnergyBurned ? Math.round(w.totalEnergyBurned.quantity) : 0;
+        const meta = w.metadata as { HKIndoorWorkout?: boolean } | undefined;
+        return {
+          uuid: w.uuid,
+          startedAt: w.startDate,
+          endedAt: w.endDate,
+          durationSec,
+          distanceKm,
+          calories,
+          isIndoor: meta?.HKIndoorWorkout === true,
+          sourceName: w.sourceRevision?.source?.name ?? 'Apple Health',
+        };
+      })
+      // Exclui workouts curtos/sem dado e os que o nosso próprio app já gravou
+      // (esses já existem como corrida no backend — evita duplicar).
+      .filter((w) => w.distanceKm >= 0.1 && w.durationSec > 0 && w.sourceName !== APP_SOURCE_NAME);
+  } catch {
+    return [];
+  }
 }
 
 export async function getStepCount(from: Date, to: Date): Promise<number> {

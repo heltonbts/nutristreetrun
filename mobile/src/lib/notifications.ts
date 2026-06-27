@@ -34,6 +34,27 @@ export function addNotificationResponseListener(
   return () => sub.remove();
 }
 
+/**
+ * Dispara uma notificação local imediata (sem servidor). Aparece como banner e
+ * fica na central de notificações — usado pra feedback ao vivo (ex: cada km
+ * fechado na corrida). Funciona em foreground (graças ao handler) e background.
+ */
+export async function presentLocalNotification(
+  title: string,
+  body: string,
+  data: Record<string, unknown> = {},
+): Promise<void> {
+  if (!Notifications) return;
+  try {
+    await Notifications.scheduleNotificationAsync({
+      content: { title, body, data, sound: true },
+      trigger: null, // null = imediato
+    });
+  } catch {
+    // silently fail — não atrapalha a corrida
+  }
+}
+
 export async function registerForPushNotifications(): Promise<void> {
   if (Platform.OS === 'web' || !Notifications) return;
 

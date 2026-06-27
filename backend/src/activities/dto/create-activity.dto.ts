@@ -149,4 +149,20 @@ export class CreateActivityDto {
   @IsString()
   @MaxLength(500)
   note?: string;
+
+  @ApiPropertyOptional({
+    example: 'AppleHealth',
+    enum: ['Manual', 'AppleHealth'],
+    description: 'Origem da atividade (padrão: Manual)',
+  })
+  @IsOptional()
+  @IsIn(['Manual', 'AppleHealth'])
+  source?: 'Manual' | 'AppleHealth';
+
+  @ApiPropertyOptional({
+    description: 'ID externo (uuid do HKWorkout) — usado p/ deduplicar importações',
+  })
+  @IsOptional()
+  @IsString()
+  externalId?: string;
 }

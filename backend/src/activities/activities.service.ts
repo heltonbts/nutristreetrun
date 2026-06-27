@@ -13,6 +13,18 @@ export class ActivitiesService {
   ) {}
 
   async create(userId: string, dto: CreateActivityDto) {
+    // Importações do Apple Health trazem o uuid do HKWorkout em externalId.
+    // Se já existe, devolve a atividade existente (idempotente) em vez de duplicar.
+    if (dto.externalId) {
+      const existing = await this.prisma.activity.findUnique({
+        where: { externalId: dto.externalId },
+      });
+      if (existing) {
+        return { ...existing, newBestPace: false, duplicate: true };
+      }
+    }
+
+    const source = dto.source ?? 'Manual';
     const MAX_PACE_SEC_PER_KM = 540;
     const paceSecPerKm = dto.durationSeconds / dto.distanceKm;
     const counts = paceSecPerKm <= MAX_PACE_SEC_PER_KM;
@@ -41,7 +53,8 @@ export class ActivitiesService {
         title,
         distanceKm: Math.round(dto.distanceKm * 10) / 10,
         pace,
-        source: 'Manual',
+        source,
+        externalId: dto.externalId,
         counts,
         skipReason,
         startedAt,
@@ -81,10 +94,14 @@ export class ActivitiesService {
       }
     }
 
-    // Push notifications: new record + challenge milestones
-    void this.sendActivityNotifications(userId, activity, pace, newBestPace);
+    // Push notifications: new record + challenge milestones.
+    // Só para corridas registradas ao vivo (Manual) — importações em lote do
+    // Apple Health não disparam push pra não spammar com treinos antigos.
+    if (source === 'Manual') {
+      void this.sendActivityNotifications(userId, activity, pace, newBestPace);
+    }
 
-    return { ...activity, newBestPace };
+    return { ...activity, newBestPace, duplicate: false };
   }
 
   private async sendActivityNotifications(
